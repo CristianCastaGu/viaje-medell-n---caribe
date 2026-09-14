@@ -1,0 +1,6 @@
+{
+  "name": "Viaje Medellín - Caribe",
+  "description": "Centro de mando para el viaje grupal Medellín - Caribe (9-18 de octubre) con itinerario interactivo, sugerencias, encuestas y control de préstamos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
