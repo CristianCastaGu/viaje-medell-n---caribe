@@ -1,4 +1,14 @@
-import { TripState, Suggestion, Poll, Loan, ItineraryDay, Traveler } from './types';
+import {
+  TripState,
+  Suggestion,
+  Poll,
+  Loan,
+  ItineraryDay,
+  Traveler,
+  Place,
+  Lodging,
+  TransportLeg,
+} from './types';
 import { INITIAL_TRIP_STATE } from './defaultData';
 
 const LOCAL_STORAGE_KEY = 'medellin_caribe_trip_state_v1';
@@ -57,7 +67,11 @@ export async function fetchTripState(): Promise<TripState> {
 }
 
 // Group Login / Join
-export async function authenticateGroup(secretWord: string, name: string, avatar?: string): Promise<{ success: boolean; traveler?: Traveler; error?: string }> {
+export async function authenticateGroup(
+  secretWord: string,
+  name: string,
+  avatar?: string
+): Promise<{ success: boolean; traveler?: Traveler; error?: string; isNewTraveler?: boolean }> {
   try {
     const res = await fetch('/api/trip/auth-group', {
       method: 'POST',
@@ -69,20 +83,15 @@ export async function authenticateGroup(secretWord: string, name: string, avatar
       return { success: false, error: data.error || 'Error al autenticar' };
     }
     setLocalSessionUser(data.traveler);
-    return { success: true, traveler: data.traveler };
+    return { success: true, traveler: data.traveler, isNewTraveler: data.isNewTraveler };
   } catch {
-    // Client-side fallback if server offline
-    if (secretWord.trim().toLowerCase() === 'desapareceresopcional'.toLowerCase()) {
-      const traveler: Traveler = {
-        id: 'usr-' + Date.now().toString(36),
-        name: name.trim(),
-        avatar: avatar || '🌴',
-        joinedAt: new Date().toISOString(),
-      };
-      setLocalSessionUser(traveler);
-      return { success: true, traveler };
-    }
-    return { success: false, error: 'Palabra secreta incorrecta (Recuerda: Desapareceresopcional).' };
+    // Sin conexión real con el servidor: no fingimos un login exitoso, porque
+    // eso dejaría al usuario "adentro" sin que su registro se haya guardado
+    // de verdad en Supabase (y el resto del grupo nunca lo vería).
+    return {
+      success: false,
+      error: 'No pudimos conectar con el servidor. Revisa tu conexión a internet e intenta de nuevo.',
+    };
   }
 }
 
@@ -101,11 +110,10 @@ export async function authenticateAdmin(password: string): Promise<{ success: bo
     }
     return { success: false, error: data.error || 'Contraseña incorrecta' };
   } catch {
-    if (password === 'adminSabana') {
-      setLocalAdminSession(true);
-      return { success: true };
-    }
-    return { success: false, error: 'Contraseña de administrador incorrecta.' };
+    return {
+      success: false,
+      error: 'No pudimos conectar con el servidor. Revisa tu conexión a internet e intenta de nuevo.',
+    };
   }
 }
 
@@ -242,6 +250,76 @@ export async function toggleSettleLoan(id: string): Promise<boolean> {
     const res = await fetch(`/api/trip/loans/${id}/settle`, {
       method: 'PATCH',
     });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Lugares / Hospedaje / Transporte (admin)
+// ---------------------------------------------------------------------
+
+export async function createPlace(payload: Omit<Place, 'id'>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/trip/places', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deletePlace(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/places/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function createLodging(payload: Omit<Lodging, 'id'>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/trip/lodging', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteLodging(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/lodging/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function createTransportLeg(payload: Omit<TransportLeg, 'id'>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/trip/transport', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteTransportLeg(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/transport/${id}`, { method: 'DELETE' });
     return res.ok;
   } catch {
     return false;

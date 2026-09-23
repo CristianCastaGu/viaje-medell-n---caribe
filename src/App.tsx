@@ -11,6 +11,9 @@ import { Navbar } from './components/Navbar';
 import { NavigationTabs } from './components/NavigationTabs';
 import { ItineraryView } from './components/ItineraryView';
 import { FullTripMapView } from './components/FullTripMapView';
+import { PlacesView } from './components/PlacesView';
+import { LodgingView } from './components/LodgingView';
+import { TransportView } from './components/TransportView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { PollsView } from './components/PollsView';
 import { LoansView } from './components/LoansView';
@@ -106,13 +109,18 @@ export default function App() {
   // If user is not logged into group nor admin, show welcome screen
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center mx-auto animate-bounce shadow-md">
-            🌴
+          <div className="flex gap-1.5 justify-center" aria-hidden="true">
+            <i className="block w-8 h-2 rounded bg-bog animate-pulse" />
+            <i className="block w-8 h-2 rounded bg-med animate-pulse [animation-delay:120ms]" />
+            <i className="block w-8 h-2 rounded bg-ctg animate-pulse [animation-delay:240ms]" />
+            <i className="block w-8 h-2 rounded bg-baq animate-pulse [animation-delay:360ms]" />
+            <i className="block w-8 h-2 rounded bg-pal animate-pulse [animation-delay:480ms]" />
+            <i className="block w-8 h-2 rounded bg-smr animate-pulse [animation-delay:600ms]" />
           </div>
-          <p className="text-sm font-extrabold text-slate-800">Cargando Centro de Mando...</p>
-          <p className="text-xs text-slate-500">Medellín - Caribe 2026</p>
+          <p className="text-sm font-bold text-ink">Cargando la ruta...</p>
+          <p className="text-xs text-ink2">Bogotá y el Caribe · 9–18 oct 2026</p>
         </div>
       </div>
     );
@@ -132,7 +140,7 @@ export default function App() {
   const totalLoansCount = tripState.loans.filter((l) => !l.settled).length;
 
   return (
-    <div className="min-h-screen bg-slate-50/60 flex flex-col pb-20 md:pb-12 text-slate-900 selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-bg flex flex-col text-ink selection:bg-ink selection:text-bg">
       {/* Top Navbar */}
       <Navbar
         currentUser={currentUser}
@@ -155,7 +163,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4">
+      <main className="flex-1 max-w-[1040px] w-full mx-auto px-[18px] pt-7 pb-24">
         {activeTab === 'itinerario' && (
           <ItineraryView
             itinerary={tripState.itinerary}
@@ -177,6 +185,33 @@ export default function App() {
             onNavigateToSuggestions={(dayNumber) => {
               setActiveTab('sugerencias');
             }}
+          />
+        )}
+
+        {activeTab === 'lugares' && (
+          <PlacesView
+            places={tripState.places}
+            isAdmin={isAdmin}
+            onRefresh={() => loadState()}
+            onNavigateToSuggestions={() => setActiveTab('sugerencias')}
+          />
+        )}
+
+        {activeTab === 'hospedaje' && (
+          <LodgingView
+            lodging={tripState.lodging}
+            isAdmin={isAdmin}
+            onRefresh={() => loadState()}
+            onNavigateToSuggestions={() => setActiveTab('sugerencias')}
+          />
+        )}
+
+        {activeTab === 'transporte' && (
+          <TransportView
+            transportLegs={tripState.transportLegs}
+            isAdmin={isAdmin}
+            onRefresh={() => loadState()}
+            onNavigateToSuggestions={() => setActiveTab('sugerencias')}
           />
         )}
 

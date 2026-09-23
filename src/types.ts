@@ -5,6 +5,9 @@ export interface Traveler {
   joinedAt: string;
 }
 
+export type CityCode = 'bog' | 'med' | 'ctg' | 'baq' | 'pal' | 'smr';
+export type CityName = 'Bogotá' | 'Medellín' | 'Cartagena' | 'Barranquilla' | 'Palomino' | 'Santa Marta';
+
 export type ActivityCategory = 'visita' | 'comida' | 'transporte' | 'playa' | 'hospedaje' | 'rumba' | 'naturaleza';
 
 export interface ActivityItem {
@@ -21,7 +24,7 @@ export interface ItineraryDay {
   dayNumber: number; // 1 to 10
   date: string; // e.g. "Viernes 9 de Octubre"
   isoDate: string; // "2026-10-09"
-  city: 'Medellín' | 'Cartagena' | 'Barranquilla' | 'Palomino' | 'Santa Marta';
+  city: CityName;
   title: string;
   tagline: string;
   lodging: string;
@@ -29,6 +32,42 @@ export interface ItineraryDay {
   transport: string;
   estimatedBudgetCOP: number;
   activities: ActivityItem[];
+}
+
+export type PlaceCategory = 'imperdible' | 'comida' | 'rumba' | 'naturaleza' | 'cultura' | 'evento';
+
+export interface Place {
+  id: string;
+  city: CityName;
+  name: string;
+  category: PlaceCategory;
+  description: string;
+}
+
+export interface Lodging {
+  id: string;
+  city: CityName;
+  name: string;
+  fromDate: string; // ISO date
+  toDate: string; // ISO date
+  pricePerNightCOP: number;
+  isEstimated: boolean;
+  notes: string;
+}
+
+export type TransportMode = 'bus' | 'vuelo' | 'otro';
+
+export interface TransportLeg {
+  id: string;
+  fromCity: string;
+  toCity: string;
+  date: string; // ISO date
+  time: string; // free text, e.g. "Mediodía"
+  mode: TransportMode;
+  priceCOP: number;
+  isEstimated: boolean;
+  colorCity: CityCode;
+  notes: string;
 }
 
 export type SuggestionCategory = 'restaurante' | 'actividad' | 'hospedaje' | 'transporte alterno' | 'rumba/noche' | 'otro';
@@ -88,6 +127,9 @@ export interface TripState {
   suggestions: Suggestion[];
   polls: Poll[];
   loans: Loan[];
+  places: Place[];
+  lodging: Lodging[];
+  transportLegs: TransportLeg[];
   config: {
     autoApprovePolls: boolean;
     tripName: string;
@@ -96,4 +138,13 @@ export interface TripState {
   };
 }
 
-export type ActiveTab = 'itinerario' | 'mapa' | 'sugerencias' | 'encuestas' | 'prestamos' | 'admin';
+export type ActiveTab =
+  | 'itinerario'
+  | 'mapa'
+  | 'lugares'
+  | 'hospedaje'
+  | 'transporte'
+  | 'sugerencias'
+  | 'encuestas'
+  | 'prestamos'
+  | 'admin';

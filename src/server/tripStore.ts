@@ -8,6 +8,9 @@ import {
   Poll,
   Loan,
   ActivityItem,
+  Place,
+  Lodging,
+  TransportLeg,
 } from '../types';
 
 // =====================================================================
@@ -92,6 +95,27 @@ async function seedIfEmpty(): Promise<void> {
       seed.loans.map((l) => loanToRow(l))
     );
     if (loanErr) throw loanErr;
+  }
+
+  if (seed.places.length > 0) {
+    const { error: placesErr } = await supabase.from('places').insert(
+      seed.places.map((p) => placeToRow(p))
+    );
+    if (placesErr) throw placesErr;
+  }
+
+  if (seed.lodging.length > 0) {
+    const { error: lodgingErr } = await supabase.from('lodging').insert(
+      seed.lodging.map((l) => lodgingToRow(l))
+    );
+    if (lodgingErr) throw lodgingErr;
+  }
+
+  if (seed.transportLegs.length > 0) {
+    const { error: transportErr } = await supabase.from('transport_legs').insert(
+      seed.transportLegs.map((tl) => transportLegToRow(tl))
+    );
+    if (transportErr) throw transportErr;
   }
 }
 
@@ -224,6 +248,82 @@ function rowToTraveler(r: any): Traveler {
   };
 }
 
+function placeToRow(p: Place) {
+  return {
+    id: p.id,
+    city: p.city,
+    name: p.name,
+    category: p.category,
+    description: p.description,
+  };
+}
+
+function rowToPlace(r: any): Place {
+  return {
+    id: r.id,
+    city: r.city,
+    name: r.name,
+    category: r.category,
+    description: r.description ?? '',
+  };
+}
+
+function lodgingToRow(l: Lodging) {
+  return {
+    id: l.id,
+    city: l.city,
+    name: l.name,
+    from_date: l.fromDate,
+    to_date: l.toDate,
+    price_per_night_cop: l.pricePerNightCOP,
+    is_estimated: l.isEstimated,
+    notes: l.notes,
+  };
+}
+
+function rowToLodging(r: any): Lodging {
+  return {
+    id: r.id,
+    city: r.city,
+    name: r.name,
+    fromDate: r.from_date,
+    toDate: r.to_date,
+    pricePerNightCOP: Number(r.price_per_night_cop),
+    isEstimated: r.is_estimated,
+    notes: r.notes ?? '',
+  };
+}
+
+function transportLegToRow(t: TransportLeg) {
+  return {
+    id: t.id,
+    from_city: t.fromCity,
+    to_city: t.toCity,
+    date: t.date,
+    time: t.time,
+    mode: t.mode,
+    price_cop: t.priceCOP,
+    is_estimated: t.isEstimated,
+    color_city: t.colorCity,
+    notes: t.notes,
+  };
+}
+
+function rowToTransportLeg(r: any): TransportLeg {
+  return {
+    id: r.id,
+    fromCity: r.from_city,
+    toCity: r.to_city,
+    date: r.date,
+    time: r.time ?? '',
+    mode: r.mode,
+    priceCOP: Number(r.price_cop),
+    isEstimated: r.is_estimated,
+    colorCity: r.color_city,
+    notes: r.notes ?? '',
+  };
+}
+
 // ---------------------------------------------------------------------
 // Lectura del estado completo
 // ---------------------------------------------------------------------
@@ -232,17 +332,39 @@ export async function getFullState(): Promise<TripState> {
   await ensureSeeded();
   const supabase = getSupabaseClient();
 
-  const [travelersRes, itineraryRes, suggestionsRes, pollsRes, loansRes, configRes] =
-    await Promise.all([
-      supabase.from('travelers').select('*').order('joined_at', { ascending: true }),
-      supabase.from('itinerary_days').select('*').order('day_number', { ascending: true }),
-      supabase.from('suggestions').select('*').order('created_at', { ascending: false }),
-      supabase.from('polls').select('*').order('created_at', { ascending: false }),
-      supabase.from('loans').select('*').order('created_at', { ascending: false }),
-      supabase.from('trip_config').select('*').eq('id', 1).maybeSingle(),
-    ]);
+  const [
+    travelersRes,
+    itineraryRes,
+    suggestionsRes,
+    pollsRes,
+    loansRes,
+    placesRes,
+    lodgingRes,
+    transportRes,
+    configRes,
+  ] = await Promise.all([
+    supabase.from('travelers').select('*').order('joined_at', { ascending: true }),
+    supabase.from('itinerary_days').select('*').order('day_number', { ascending: true }),
+    supabase.from('suggestions').select('*').order('created_at', { ascending: false }),
+    supabase.from('polls').select('*').order('created_at', { ascending: false }),
+    supabase.from('loans').select('*').order('created_at', { ascending: false }),
+    supabase.from('places').select('*').order('id', { ascending: true }),
+    supabase.from('lodging').select('*').order('from_date', { ascending: true }),
+    supabase.from('transport_legs').select('*').order('date', { ascending: true }),
+    supabase.from('trip_config').select('*').eq('id', 1).maybeSingle(),
+  ]);
 
-  for (const res of [travelersRes, itineraryRes, suggestionsRes, pollsRes, loansRes, configRes]) {
+  for (const res of [
+    travelersRes,
+    itineraryRes,
+    suggestionsRes,
+    pollsRes,
+    loansRes,
+    placesRes,
+    lodgingRes,
+    transportRes,
+    configRes,
+  ]) {
     if (res.error) throw res.error;
   }
 
@@ -254,6 +376,9 @@ export async function getFullState(): Promise<TripState> {
     suggestions: (suggestionsRes.data ?? []).map(rowToSuggestion),
     polls: (pollsRes.data ?? []).map(rowToPoll),
     loans: (loansRes.data ?? []).map(rowToLoan),
+    places: (placesRes.data ?? []).map(rowToPlace),
+    lodging: (lodgingRes.data ?? []).map(rowToLodging),
+    transportLegs: (transportRes.data ?? []).map(rowToTransportLeg),
     config: cfg
       ? {
           tripName: cfg.trip_name,
@@ -477,6 +602,79 @@ export async function toggleSettleLoan(id: string): Promise<Loan | null> {
 }
 
 // ---------------------------------------------------------------------
+// Lugares / Hospedaje / Transporte (admin)
+// ---------------------------------------------------------------------
+
+export async function insertPlace(place: Place): Promise<Place[]> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('places').insert(placeToRow(place));
+  if (error) throw error;
+  return listPlaces();
+}
+
+export async function listPlaces(): Promise<Place[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('places').select('*').order('id', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToPlace);
+}
+
+export async function deletePlace(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('places').delete().eq('id', id).select();
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+export async function insertLodging(lodging: Lodging): Promise<Lodging[]> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('lodging').insert(lodgingToRow(lodging));
+  if (error) throw error;
+  return listLodging();
+}
+
+export async function listLodging(): Promise<Lodging[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('lodging')
+    .select('*')
+    .order('from_date', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToLodging);
+}
+
+export async function deleteLodging(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('lodging').delete().eq('id', id).select();
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+export async function insertTransportLeg(leg: TransportLeg): Promise<TransportLeg[]> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('transport_legs').insert(transportLegToRow(leg));
+  if (error) throw error;
+  return listTransportLegs();
+}
+
+export async function listTransportLegs(): Promise<TransportLeg[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('transport_legs')
+    .select('*')
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToTransportLeg);
+}
+
+export async function deleteTransportLeg(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('transport_legs').delete().eq('id', id).select();
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+// ---------------------------------------------------------------------
 // Configuración / reinicio
 // ---------------------------------------------------------------------
 
@@ -507,7 +705,15 @@ export async function updateConfig(patch: {
 export async function resetTripData(): Promise<TripState> {
   const supabase = getSupabaseClient();
 
-  const textIdTables = ['suggestions', 'polls', 'loans', 'travelers'];
+  const textIdTables = [
+    'suggestions',
+    'polls',
+    'loans',
+    'travelers',
+    'places',
+    'lodging',
+    'transport_legs',
+  ];
   await Promise.all(textIdTables.map(async (table) => {
     const { error } = await supabase.from(table).delete().neq('id', '__never_matches__');
     if (error) throw error;

@@ -1,17 +1,128 @@
 @import "tailwindcss";
 
+/* =====================================================================
+ * Sistema de diseño "Ruta Caribe": tipografía + paleta por ciudad +
+ * modo claro/oscuro. Portado del prototipo de artefacto (Bricolage
+ * Grotesque, colores por ciudad, superficies neutras) a tokens de
+ * Tailwind v4. Cada --color-* de aquí genera automáticamente clases
+ * utilitarias: bg-surface, text-ink2, border-line, bg-med, text-ctg, etc.
+ * ===================================================================== */
 @theme {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+  --color-bg: #EDF3F4;
+  --color-surface: #FFFFFF;
+  --color-ink: #10232B;
+  --color-ink2: #47606A;
+  --color-line: #D3DFE2;
+  --color-soft: #E2ECEE;
+
+  /* Una ciudad, un color, en todo el sistema: calendario, tickets,
+     franja de ruta, barras de presupuesto. */
+  --color-bog: #5A6B85;
+  --color-med: #1F9D6B;
+  --color-ctg: #D63C7A;
+  --color-baq: #D39A00;
+  --color-pal: #0B8FA3;
+  --color-smr: #E0672A;
+
+  --color-ok: #11703F;
+  --color-bad: #B3261E;
+  --color-focus: #1B5FD1;
+}
+
+/* Modo oscuro: sigue al sistema operativo por defecto; el atributo
+   data-theme (guardado en localStorage, ver Navbar) lo fuerza. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0A151A;
+    --color-surface: #12222A;
+    --color-ink: #E8F1F3;
+    --color-ink2: #9DB3BA;
+    --color-line: #25393F;
+    --color-soft: #1A2D34;
+    --color-bog: #8FA3C0;
+    --color-med: #3FCB93;
+    --color-ctg: #F06A9E;
+    --color-baq: #F2B93B;
+    --color-pal: #3CC3D6;
+    --color-smr: #F79452;
+    --color-ok: #4CD08E;
+    --color-bad: #FF8A7A;
+    --color-focus: #7AA7FF;
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0A151A;
+  --color-surface: #12222A;
+  --color-ink: #E8F1F3;
+  --color-ink2: #9DB3BA;
+  --color-line: #25393F;
+  --color-soft: #1A2D34;
+  --color-bog: #8FA3C0;
+  --color-med: #3FCB93;
+  --color-ctg: #F06A9E;
+  --color-baq: #F2B93B;
+  --color-pal: #3CC3D6;
+  --color-smr: #F79452;
+  --color-ok: #4CD08E;
+  --color-bad: #FF8A7A;
+  --color-focus: #7AA7FF;
 }
 
 html {
   scroll-behavior: smooth;
   font-family: var(--font-sans);
+  background: var(--color-bg);
+  color-scheme: light dark;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 h1, h2, h3, .font-heading {
   font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Boleto estilo "boarding pass": usado para hospedaje y transporte.
+   El borde punteado + la muesca de color por ciudad son la firma
+   visual del sistema, así que quedan como utilidades reutilizables. */
+.rc-ticket {
+  display: grid;
+  grid-template-columns: 132px 1fr auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.rc-ticket .rc-stub {
+  background: color-mix(in srgb, var(--rc-c, var(--color-ink)) 18%, var(--color-surface));
+  border-right: 2px dashed var(--color-line);
+  padding: 16px;
+}
+@media (max-width: 640px) {
+  .rc-ticket {
+    grid-template-columns: 1fr;
+  }
+  .rc-ticket .rc-stub {
+    border-right: 0;
+    border-bottom: 2px dashed var(--color-line);
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
 }
 
 /* Custom scrollbar */
@@ -23,9 +134,9 @@ h1, h2, h3, .font-heading {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(200, 150, 100, 0.3);
+  background: var(--color-line);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(200, 150, 100, 0.5);
+  background: var(--color-ink2);
 }

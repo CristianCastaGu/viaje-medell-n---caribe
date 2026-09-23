@@ -1,5 +1,13 @@
 import express, { Express } from 'express';
-import { ActivityItem, ItineraryDay, Poll, Suggestion } from '../types';
+import {
+  ActivityItem,
+  ItineraryDay,
+  Lodging,
+  Place,
+  Poll,
+  Suggestion,
+  TransportLeg,
+} from '../types';
 import * as store from './tripStore';
 
 // Palabra secreta del grupo y contraseña del admin.
@@ -63,6 +71,7 @@ export function createApiApp(): Express {
       }
 
       let traveler = await store.findTravelerByName(trimmedName);
+      const isNewTraveler = !traveler;
 
       if (!traveler) {
         const chosenAvatar = avatar || DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
@@ -75,7 +84,7 @@ export function createApiApp(): Express {
       }
 
       const state = await store.getFullState();
-      res.json({ success: true, traveler, state });
+      res.json({ success: true, traveler, state, isNewTraveler });
     })
   );
 
@@ -346,6 +355,116 @@ export function createApiApp(): Express {
       }
       const loans = await store.listLoans();
       res.json({ success: true, loan, loans });
+    })
+  );
+
+  // ---------------- Lugares / Hospedaje / Transporte (admin) ----------------
+  // Nota: igual que el resto de rutas de admin de este archivo, no llevan
+  // verificación de contraseña en el servidor — la barrera real hoy es a
+  // quién se le pasa el enlace. Ver la nota de seguridad del README.
+
+  app.post(
+    '/api/trip/places',
+    wrap(async (req, res) => {
+      const { city, name, category, description } = req.body || {};
+      if (!city || !name) {
+        res.status(400).json({ error: 'Ciudad y nombre son obligatorios.' });
+        return;
+      }
+      const place: Place = {
+        id: newId('pl'),
+        city,
+        name: String(name).trim(),
+        category: category || 'imperdible',
+        description: (description || '').trim(),
+      };
+      const places = await store.insertPlace(place);
+      res.json({ success: true, place, places });
+    })
+  );
+
+  app.delete(
+    '/api/trip/places/:id',
+    wrap(async (req, res) => {
+      const deleted = await store.deletePlace(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Lugar no encontrado.' });
+        return;
+      }
+      res.json({ success: true, places: await store.listPlaces() });
+    })
+  );
+
+  app.post(
+    '/api/trip/lodging',
+    wrap(async (req, res) => {
+      const { city, name, fromDate, toDate, pricePerNightCOP, isEstimated, notes } = req.body || {};
+      if (!city || !name || !fromDate || !toDate) {
+        res.status(400).json({ error: 'Ciudad, nombre y fechas de entrada/salida son obligatorios.' });
+        return;
+      }
+      const lodging: Lodging = {
+        id: newId('lg'),
+        city,
+        name: String(name).trim(),
+        fromDate,
+        toDate,
+        pricePerNightCOP: Number(pricePerNightCOP) || 0,
+        isEstimated: isEstimated !== false,
+        notes: (notes || '').trim(),
+      };
+      const list = await store.insertLodging(lodging);
+      res.json({ success: true, lodging, list });
+    })
+  );
+
+  app.delete(
+    '/api/trip/lodging/:id',
+    wrap(async (req, res) => {
+      const deleted = await store.deleteLodging(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Hospedaje no encontrado.' });
+        return;
+      }
+      res.json({ success: true, list: await store.listLodging() });
+    })
+  );
+
+  app.post(
+    '/api/trip/transport',
+    wrap(async (req, res) => {
+      const { fromCity, toCity, date, time, mode, priceCOP, isEstimated, colorCity, notes } =
+        req.body || {};
+      if (!fromCity || !toCity || !date) {
+        res.status(400).json({ error: 'Origen, destino y fecha son obligatorios.' });
+        return;
+      }
+      const leg: TransportLeg = {
+        id: newId('tr'),
+        fromCity: String(fromCity).trim(),
+        toCity: String(toCity).trim(),
+        date,
+        time: (time || '').trim(),
+        mode: mode || 'bus',
+        priceCOP: Number(priceCOP) || 0,
+        isEstimated: isEstimated !== false,
+        colorCity: colorCity || 'med',
+        notes: (notes || '').trim(),
+      };
+      const legs = await store.insertTransportLeg(leg);
+      res.json({ success: true, leg, legs });
+    })
+  );
+
+  app.delete(
+    '/api/trip/transport/:id',
+    wrap(async (req, res) => {
+      const deleted = await store.deleteTransportLeg(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Tramo de transporte no encontrado.' });
+        return;
+      }
+      res.json({ success: true, legs: await store.listTransportLegs() });
     })
   );
 
