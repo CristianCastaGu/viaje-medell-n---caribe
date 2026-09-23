@@ -12,7 +12,7 @@
 //
 // Variables de entorno requeridas en Vercel > Settings > Environment
 // Variables: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (ver README.md).
-import { createApiApp } from '../src/server/app';
+import { createApiApp } from '../src/server/app.js';
 
 const app = createApiApp();
 

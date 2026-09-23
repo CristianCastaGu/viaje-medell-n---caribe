@@ -8,7 +8,7 @@ import {
   Suggestion,
   TransportLeg,
 } from '../types';
-import * as store from './tripStore';
+import * as store from './tripStore.js';
 
 // Palabra secreta del grupo y contraseña del admin.
 // Pueden sobreescribirse por variables de entorno (recomendado si el

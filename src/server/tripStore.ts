@@ -1,5 +1,5 @@
-import { getSupabaseClient } from './supabaseClient';
-import { INITIAL_TRIP_STATE } from '../defaultData';
+import { getSupabaseClient } from './supabaseClient.js';
+import { INITIAL_TRIP_STATE } from '../defaultData.js';
 import {
   TripState,
   Traveler,

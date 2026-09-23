@@ -12,7 +12,7 @@ if (fs.existsSync('.env.local')) {
 }
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { createApiApp } from './src/server/app';
+import { createApiApp } from './src/server/app.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 
