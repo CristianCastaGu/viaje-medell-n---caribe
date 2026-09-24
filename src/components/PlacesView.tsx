@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { MapPin, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { Place, PlaceCategory, CityName } from '../types';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
-import { createPlace, deletePlace } from '../api';
-import { Button, Chip, EmptyState, FilterPill, SectionHeader } from './ui';
+import { createPlace, deletePlace, resolveMapsLink } from '../api';
+import { Button, Chip, EmptyState, FilterPill, SectionHeader, formatCOP } from './ui';
 import { useLang } from '../lib/i18n';
 
 interface PlacesViewProps {
@@ -43,10 +43,11 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
     name: '',
     category: 'imperdible' as PlaceCategory,
     description: '',
-    lat: '',
-    lng: '',
+    estimatedCostCOP: '',
+    mapsLink: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [mapsLinkError, setMapsLinkError] = useState('');
 
   // Bogotá no lista lugares: es solo el punto de salida y de regreso.
   const cities = CITY_ORDER.filter((c) => c !== 'bog').map((c) => CITY_LABEL[c] as CityName);
@@ -54,17 +55,34 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
   const handleAdd = async () => {
     if (!form.name.trim()) return;
     setIsSaving(true);
+    setMapsLinkError('');
+
+    let lat: number | undefined;
+    let lng: number | undefined;
+    if (form.mapsLink.trim()) {
+      const resolved = await resolveMapsLink(form.mapsLink.trim());
+      if (resolved.success) {
+        lat = resolved.lat;
+        lng = resolved.lng;
+      } else {
+        // No bloqueamos el guardado por esto: el lugar se guarda igual,
+        // solo sin posición exacta en el mapa.
+        setMapsLinkError(resolved.error || 'No pudimos leer ese enlace.');
+      }
+    }
+
     const ok = await createPlace({
       city: form.city,
       name: form.name.trim(),
       category: form.category,
       description: form.description.trim(),
-      lat: form.lat ? Number(form.lat) : undefined,
-      lng: form.lng ? Number(form.lng) : undefined,
+      estimatedCostCOP: form.estimatedCostCOP ? Number(form.estimatedCostCOP) : undefined,
+      lat,
+      lng,
     });
     setIsSaving(false);
     if (ok) {
-      setForm({ city: form.city, name: '', category: 'imperdible', description: '', lat: '', lng: '' });
+      setForm({ city: form.city, name: '', category: 'imperdible', description: '', estimatedCostCOP: '', mapsLink: '' });
       setIsAdding(false);
       onRefresh();
     }
@@ -138,34 +156,32 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Por qué vale la pena, cuándo iríamos, qué cuesta..."
+              placeholder="Por qué vale la pena, cuándo iríamos..."
               className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 min-h-[80px] text-ink"
             />
           </label>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <label className="grid gap-1.5">
-              <span className="text-sm font-semibold text-ink">Latitud (opcional)</span>
-              <input
-                value={form.lat}
-                onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                placeholder="Ej. 10.4227"
-                inputMode="decimal"
-                className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
-              />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-sm font-semibold text-ink">Longitud (opcional)</span>
-              <input
-                value={form.lng}
-                onChange={(e) => setForm({ ...form, lng: e.target.value })}
-                placeholder="Ej. -75.5389"
-                inputMode="decimal"
-                className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
-              />
-            </label>
-          </div>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-semibold text-ink">¿Cuánto podría gastar cada persona? (COP, opcional)</span>
+            <input
+              value={form.estimatedCostCOP}
+              onChange={(e) => setForm({ ...form, estimatedCostCOP: e.target.value.replace(/\D/g, '') })}
+              placeholder="Ej. 35000"
+              inputMode="numeric"
+              className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
+            />
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-semibold text-ink">Enlace de Google Maps (opcional)</span>
+            <input
+              value={form.mapsLink}
+              onChange={(e) => setForm({ ...form, mapsLink: e.target.value })}
+              placeholder="Pega aquí el link para ubicarlo en el mapa de la Ruta"
+              className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
+            />
+          </label>
+          {mapsLinkError && <p className="text-[11px] text-bad -mt-1">{mapsLinkError}</p>}
           <p className="text-[11px] text-ink2 -mt-1">
-            Si las dejas vacías, el lugar igual aparece en la lista, pero no tendrá una posición exacta en el mapa de la Ruta.
+            Si no pegas un enlace, el lugar igual aparece en la lista, pero no tendrá una posición exacta en el mapa de la Ruta.
           </p>
           <div className="flex gap-2.5">
             <Button onClick={handleAdd} disabled={isSaving || !form.name.trim()}>
@@ -221,6 +237,11 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
                       <p className="text-ink2 text-[15px] mt-0.5">{p.description}</p>
                     </div>
                     <div className="flex gap-2 items-start flex-wrap sm:justify-end">
+                      {!!p.estimatedCostCOP && (
+                        <span className="inline-flex items-center text-[13px] font-bold text-ink bg-soft px-3 py-1.5 rounded-[9px] min-h-[40px]">
+                          {formatCOP(p.estimatedCostCOP)} <span className="font-normal text-ink2 ml-1">p/p</span>
+                        </span>
+                      )}
                       <a
                         href={mapsUrl(p.name, p.city)}
                         target="_blank"

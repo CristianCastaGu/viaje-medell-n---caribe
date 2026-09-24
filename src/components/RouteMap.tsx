@@ -5,8 +5,8 @@ import { Maximize2, Minimize2, MapPin, Plus, Trash2 } from 'lucide-react';
 import { ItineraryDay, Place, PlaceCategory, CityCode } from '../types';
 import { CITY_LABEL, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { CITY_COORDS, ROUTE_ORDER } from '../lib/tripMap';
-import { createPlace, deletePlace } from '../api';
-import { Button, Chip, Field, inputCls } from './ui';
+import { createPlace, deletePlace, resolveMapsLink } from '../api';
+import { Button, Chip, Field, inputCls, formatCOP } from './ui';
 import { useLang } from '../lib/i18n';
 
 interface RouteMapProps {
@@ -68,7 +68,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', category: 'imperdible' as PlaceCategory, description: '' });
+  const [form, setForm] = useState({
+    name: '',
+    category: 'imperdible' as PlaceCategory,
+    description: '',
+    estimatedCostCOP: '',
+    mapsLink: '',
+  });
+  const [mapsLinkError, setMapsLinkError] = useState('');
 
   const { t } = useLang();
   const cityCode = cityCodeFromName(currentDay.city);
@@ -155,15 +162,32 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
   const handleAddPlace = async () => {
     if (!form.name.trim()) return;
     setIsSaving(true);
+    setMapsLinkError('');
+
+    let lat: number | undefined;
+    let lng: number | undefined;
+    if (form.mapsLink.trim()) {
+      const resolved = await resolveMapsLink(form.mapsLink.trim());
+      if (resolved.success) {
+        lat = resolved.lat;
+        lng = resolved.lng;
+      } else {
+        setMapsLinkError(resolved.error || 'No pudimos leer ese enlace.');
+      }
+    }
+
     const ok = await createPlace({
       city: currentDay.city,
       name: form.name.trim(),
       category: form.category,
       description: form.description.trim(),
+      estimatedCostCOP: form.estimatedCostCOP ? Number(form.estimatedCostCOP) : undefined,
+      lat,
+      lng,
     });
     setIsSaving(false);
     if (ok) {
-      setForm({ name: '', category: 'imperdible', description: '' });
+      setForm({ name: '', category: 'imperdible', description: '', estimatedCostCOP: '', mapsLink: '' });
       setIsAdding(false);
       onRefresh();
     }
@@ -253,9 +277,26 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
               <Field label="Descripción">
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
               </Field>
-              <p className="text-[11px] text-ink2">
-                Para fijar la posición exacta en el mapa, agrégale coordenadas desde la pestaña Lugares.
-              </p>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                <Field label="Costo por persona (COP, opcional)">
+                  <input
+                    value={form.estimatedCostCOP}
+                    onChange={(e) => setForm({ ...form, estimatedCostCOP: e.target.value.replace(/\D/g, '') })}
+                    placeholder="35000"
+                    inputMode="numeric"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Enlace de Google Maps (opcional)">
+                  <input
+                    value={form.mapsLink}
+                    onChange={(e) => setForm({ ...form, mapsLink: e.target.value })}
+                    placeholder="Para ubicarlo en el mapa"
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+              {mapsLinkError && <p className="text-[11px] text-bad">{mapsLinkError}</p>}
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAddPlace} disabled={isSaving || !form.name.trim()}>
                   {isSaving ? 'Guardando...' : 'Guardar'}
@@ -284,6 +325,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
                   <p className="font-bold text-ink text-sm mt-1">{p.name}</p>
                   <Chip>{CATEGORY_LABEL[p.category] ?? p.category}</Chip>
                   {p.description && <p className="text-xs text-ink2 mt-1 line-clamp-2">{p.description}</p>}
+                  {!!p.estimatedCostCOP && (
+                    <p className="text-xs font-bold text-ink mt-1">{formatCOP(p.estimatedCostCOP)} p/p</p>
+                  )}
                 </div>
               ))}
             </div>

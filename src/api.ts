@@ -132,6 +132,16 @@ export async function updateItineraryDay(day: ItineraryDay): Promise<boolean> {
   }
 }
 
+// Delete Itinerary Day
+export async function deleteItineraryDay(dayNumber: number): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/itinerary/${dayNumber}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Create Suggestion
 export async function createSuggestion(payload: Partial<Suggestion>): Promise<boolean> {
   try {
@@ -254,6 +264,55 @@ export async function toggleSettleLoan(id: string): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Viajeros (admin)
+// ---------------------------------------------------------------------
+
+export async function createTravelerAsAdmin(
+  name: string,
+  avatar?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/trip/travelers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, avatar }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data.error || 'Error al agregar viajero' };
+    return { success: true };
+  } catch {
+    return { success: false, error: 'No pudimos conectar con el servidor.' };
+  }
+}
+
+export async function deleteTraveler(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/travelers/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Resuelve un enlace de Google Maps (incluidos los acortados) a {lat, lng}.
+export async function resolveMapsLink(
+  url: string
+): Promise<{ success: boolean; lat?: number; lng?: number; error?: string }> {
+  try {
+    const res = await fetch('/api/trip/resolve-maps-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data.error || 'No pudimos leer ese enlace.' };
+    return { success: true, lat: data.lat, lng: data.lng };
+  } catch {
+    return { success: false, error: 'No pudimos conectar con el servidor.' };
   }
 }
 

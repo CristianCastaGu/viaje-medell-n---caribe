@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Calendar, Sliders } from 'lucide-react';
+import { AlertTriangle, Calendar, Plus, Trash2 } from 'lucide-react';
 import { TripState, Suggestion, ActiveTab } from '../types';
 import { formatCOP, formatDateEs, calculatePairwiseNet } from '../utils/debts';
-import { updateSuggestionStatus, updatePollStatus, resetTripData } from '../api';
-import { Button, EmptyState, Modal, Surface } from './ui';
+import { updateSuggestionStatus, updatePollStatus, resetTripData, createTravelerAsAdmin, deleteTraveler } from '../api';
+import { Button, EmptyState, Field, Modal, Surface, inputCls } from './ui';
 import { useLang } from '../lib/i18n';
+
+const QUICK_AVATARS = ['🌴', '🌺', '☕', '🌊', '🧗', '🦜', '🏖️', '🎒', '🕶️', '🛶'];
 
 interface AdminDashboardProps {
   tripState: TripState;
@@ -35,6 +37,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [actionFeedback, setActionFeedback] = useState('');
+  const [isAddingTraveler, setIsAddingTraveler] = useState(false);
+  const [newTravelerName, setNewTravelerName] = useState('');
+  const [newTravelerAvatar, setNewTravelerAvatar] = useState(QUICK_AVATARS[0]);
+  const [travelerError, setTravelerError] = useState('');
+  const [isSavingTraveler, setIsSavingTraveler] = useState(false);
 
   const { travelers, suggestions, polls, loans, itinerary, config } = tripState;
 
@@ -48,6 +55,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const flash = (msg: string) => {
     setActionFeedback(msg);
     setTimeout(() => setActionFeedback(''), 4000);
+  };
+
+  const handleAddTraveler = async () => {
+    if (!newTravelerName.trim()) return;
+    setIsSavingTraveler(true);
+    setTravelerError('');
+    const result = await createTravelerAsAdmin(newTravelerName.trim(), newTravelerAvatar);
+    setIsSavingTraveler(false);
+    if (result.success) {
+      setNewTravelerName('');
+      setIsAddingTraveler(false);
+      flash(`"${newTravelerName.trim()}" se agregó al grupo.`);
+      onRefresh();
+    } else {
+      setTravelerError(result.error || 'No se pudo agregar.');
+    }
+  };
+
+  const handleDeleteTraveler = async (id: string, name: string) => {
+    if (!window.confirm(`¿Quitar a "${name}" del grupo? Sus sugerencias, votos y préstamos ya registrados no se borran.`)) return;
+    if (await deleteTraveler(id)) {
+      flash(`"${name}" se quitó del grupo.`);
+      onRefresh();
+    }
   };
 
   const handleQuickApproveSug = async (sug: Suggestion) => {
@@ -277,18 +308,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {activeSubTab === 'viajeros' && (
         <Surface>
-          <h3 className="font-bold text-ink mb-4">Aventureros registrados ({travelers.length})</h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="font-bold text-ink">Aventureros registrados ({travelers.length})</h3>
+            <Button size="sm" variant="ghost" onClick={() => setIsAddingTraveler((v) => !v)}>
+              <Plus className="w-3.5 h-3.5" /> Agregar viajero
+            </Button>
+          </div>
+
+          {isAddingTraveler && (
+            <div className="bg-soft rounded-xl p-3.5 grid gap-2.5 mb-4">
+              <Field label="Nombre">
+                <input
+                  value={newTravelerName}
+                  onChange={(e) => setNewTravelerName(e.target.value)}
+                  placeholder="Nombre o apodo"
+                  className={inputCls}
+                />
+              </Field>
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {QUICK_AVATARS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setNewTravelerAvatar(emoji)}
+                    className={`h-10 text-lg rounded-lg border-[1.5px] cursor-pointer ${
+                      newTravelerAvatar === emoji ? 'bg-surface border-ink' : 'bg-surface/60 border-line'
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              {travelerError && <p className="text-xs text-bad">{travelerError}</p>}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleAddTraveler} disabled={isSavingTraveler || !newTravelerName.trim()}>
+                  {isSavingTraveler ? 'Guardando...' : 'Guardar'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsAddingTraveler(false)}>Cancelar</Button>
+              </div>
+            </div>
+          )}
+
           {travelers.length === 0 ? (
             <EmptyState>Todavía nadie se ha unido con su nombre.</EmptyState>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {travelers.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 bg-soft rounded-xl px-3.5 py-2.5">
-                  <span className="text-xl">{t.avatar}</span>
-                  <div>
-                    <h4 className="font-bold text-ink text-sm">{t.name}</h4>
-                    <p className="text-[11px] text-ink2">{formatDateEs(t.joinedAt)}</p>
+              {travelers.map((trav) => (
+                <div key={trav.id} className="flex items-center gap-3 bg-soft rounded-xl px-3.5 py-2.5">
+                  <span className="text-xl">{trav.avatar}</span>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-ink text-sm truncate">{trav.name}</h4>
+                    <p className="text-[11px] text-ink2">{formatDateEs(trav.joinedAt)}</p>
                   </div>
+                  <button
+                    onClick={() => handleDeleteTraveler(trav.id, trav.name)}
+                    className="text-ink2 hover:text-bad p-1 cursor-pointer shrink-0"
+                    title="Quitar del grupo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>

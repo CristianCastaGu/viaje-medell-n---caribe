@@ -263,6 +263,7 @@ function placeToRow(p: Place) {
     name: p.name,
     category: p.category,
     description: p.description,
+    estimated_cost_cop: p.estimatedCostCOP ?? null,
     lat: p.lat ?? null,
     lng: p.lng ?? null,
   };
@@ -275,6 +276,7 @@ function rowToPlace(r: any): Place {
     name: r.name,
     category: r.category,
     description: r.description ?? '',
+    estimatedCostCOP: r.estimated_cost_cop != null ? Number(r.estimated_cost_cop) : undefined,
     lat: r.lat ?? undefined,
     lng: r.lng ?? undefined,
   };
@@ -445,6 +447,13 @@ export async function createTraveler(traveler: Traveler): Promise<Traveler> {
   return rowToTraveler(data);
 }
 
+export async function deleteTraveler(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('travelers').delete().eq('id', id).select();
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 // ---------------------------------------------------------------------
 // Itinerario (admin)
 // ---------------------------------------------------------------------
@@ -471,6 +480,19 @@ export async function getItineraryDay(dayNumber: number): Promise<ItineraryDay |
     .maybeSingle();
   if (error) throw error;
   return data ? rowToDay(data) : null;
+}
+
+export async function deleteItineraryDay(dayNumber: number): Promise<{ deleted: boolean; itinerary: ItineraryDay[] }> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('itinerary_days').delete().eq('day_number', dayNumber).select();
+  if (error) throw error;
+  const deleted = (data ?? []).length > 0;
+  const { data: rest, error: listErr } = await supabase
+    .from('itinerary_days')
+    .select('*')
+    .order('day_number', { ascending: true });
+  if (listErr) throw listErr;
+  return { deleted, itinerary: (rest ?? []).map(rowToDay) };
 }
 
 // ---------------------------------------------------------------------

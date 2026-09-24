@@ -76,7 +76,7 @@ const DICT = {
     home_settled: 'Estás a paz y salvo',
     home_countdown_one_day: 'Falta 1 día',
     home_countdown_days: 'Faltan {n} días',
-    home_countdown_day_of_10: 'Día {n} de 10',
+    home_countdown_day_of: 'Día {n} de {total}',
     home_countdown_over: 'La aventura ya pasó',
 
     // Ruta / ItineraryView
@@ -275,7 +275,7 @@ const DICT = {
     home_settled: "You're all settled up",
     home_countdown_one_day: '1 day to go',
     home_countdown_days: '{n} days to go',
-    home_countdown_day_of_10: 'Day {n} of 10',
+    home_countdown_day_of: 'Day {n} of {total}',
     home_countdown_over: 'The adventure is over',
 
     route_title: 'The route, day by day',

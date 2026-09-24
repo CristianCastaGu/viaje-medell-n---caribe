@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MapPin, Building, Bus, DollarSign, Clock, Plus, Edit2, Trash2, CheckCircle2,
-  ChevronLeft, ChevronRight, Navigation, X, Lightbulb, Send,
+  ChevronLeft, ChevronRight, Navigation, X, Lightbulb, Send, AlertTriangle,
 } from 'lucide-react';
 import { ItineraryDay, ActivityItem, ActivityCategory, Traveler, SuggestionCategory, CityName, Place } from '../types';
 import { formatCOP } from '../utils/debts';
-import { updateItineraryDay, createSuggestion } from '../api';
+import { updateItineraryDay, deleteItineraryDay, createSuggestion } from '../api';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
+import { addDaysIso, dayOfMonth, formatSpanishDate } from '../lib/dates';
 import { Button, Chip, CityDot, Field, Modal, SectionHeader, Surface, TotalRow, inputCls } from './ui';
 import { RouteMap } from './RouteMap';
 import { useLang } from '../lib/i18n';
@@ -38,10 +39,12 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onItineraryUpdated,
   onNavigateToSuggestions,
 }) => {
-  const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number>(itinerary[0]?.dayNumber ?? 1);
 
   const [isEditingDay, setIsEditingDay] = useState(false);
   const [editingDayData, setEditingDayData] = useState<ItineraryDay | null>(null);
+  const [isNewDay, setIsNewDay] = useState(false);
+  const [isDeletingDay, setIsDeletingDay] = useState(false);
 
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActTitle, setNewActTitle] = useState('');
@@ -63,6 +66,16 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   const { t } = useLang();
   const currentDay = itinerary.find((d) => d.dayNumber === selectedDayNumber) || itinerary[0];
   const totalTripBudget = itinerary.reduce((acc, d) => acc + (d.estimatedBudgetCOP || 0), 0);
+  const dayNumbers = itinerary.map((d) => d.dayNumber);
+  const minDay = dayNumbers.length ? Math.min(...dayNumbers) : 1;
+  const maxDay = dayNumbers.length ? Math.max(...dayNumbers) : 1;
+
+  // Si el día seleccionado se borró (o el itinerario cambió), cae al primero disponible.
+  useEffect(() => {
+    if (itinerary.length && !itinerary.some((d) => d.dayNumber === selectedDayNumber)) {
+      setSelectedDayNumber(itinerary[0].dayNumber);
+    }
+  }, [itinerary, selectedDayNumber]);
 
   const handleSubmitProposal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,15 +107,53 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   };
 
   const handleStartEditDay = () => {
+    setIsNewDay(false);
     setEditingDayData(JSON.parse(JSON.stringify(currentDay)));
     setIsEditingDay(true);
   };
+
+  const handleStartAddDay = () => {
+    const lastDay = itinerary[itinerary.length - 1];
+    const nextIsoDate = lastDay ? addDaysIso(lastDay.isoDate, 1) : new Date().toISOString().slice(0, 10);
+    setIsNewDay(true);
+    setEditingDayData({
+      dayNumber: maxDay + 1,
+      isoDate: nextIsoDate,
+      date: formatSpanishDate(nextIsoDate),
+      city: lastDay?.city || 'Medellín',
+      title: '',
+      tagline: '',
+      lodging: '',
+      lodgingNotes: '',
+      transport: '',
+      estimatedBudgetCOP: 0,
+      activities: [],
+    });
+    setIsEditingDay(true);
+  };
+
   const handleSaveDayEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDayData) return;
     setIsSaving(true);
-    const success = await updateItineraryDay(editingDayData);
+    // La fecha se edita como isoDate; el texto largo ("Miércoles 21 de
+    // Octubre") siempre se recalcula a partir de ahí, para que nunca queden
+    // desincronizados.
+    const dayToSave: ItineraryDay = { ...editingDayData, date: formatSpanishDate(editingDayData.isoDate) };
+    const success = await updateItineraryDay(dayToSave);
     setIsSaving(false);
+    if (success) {
+      setIsEditingDay(false);
+      setSelectedDayNumber(dayToSave.dayNumber);
+      onItineraryUpdated();
+    }
+  };
+
+  const handleDeleteDay = async () => {
+    if (!window.confirm(`¿Eliminar el Día ${currentDay.dayNumber} (${currentDay.city}) del itinerario? Esta acción no se puede deshacer.`)) return;
+    setIsDeletingDay(true);
+    const success = await deleteItineraryDay(currentDay.dayNumber);
+    setIsDeletingDay(false);
     if (success) {
       setIsEditingDay(false);
       onItineraryUpdated();
@@ -146,12 +197,27 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   return (
     <div>
-      <SectionHeader title={t('route_title')} lead={t('route_lead')} />
+      <SectionHeader
+        title={t('route_title')}
+        lead={t('route_lead')}
+        actions={
+          isAdmin ? (
+            <Button variant="ghost" size="sm" onClick={handleStartAddDay}>
+              <Plus className="w-4 h-4" /> Agregar día
+            </Button>
+          ) : undefined
+        }
+      />
 
       <TotalRow label={t('route_total_budget')} value={formatCOP(totalTripBudget)} />
 
-      {/* Franja de días (equivalente al calendario del prototipo, en 10 días fijos) */}
-      <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 my-6">
+      {/* Franja de días: el ancho mínimo por celda hace que la cuadrícula
+          se acomode sola, tenga el itinerario los días que tenga (se
+          adapta si el admin agrega o quita alguno). */}
+      <div
+        className="grid gap-1.5 my-6"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))' }}
+      >
         {itinerary.map((day) => {
           const isSelected = day.dayNumber === selectedDayNumber;
           const style = CITY_STYLE[cityCodeFromName(day.city)];
@@ -164,7 +230,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                 isSelected ? `${style.border} border-2` : 'border-transparent hover:border-line'
               }`}
             >
-              <b className="text-lg leading-none tracking-[-0.02em] text-ink">{day.dayNumber + 8}</b>
+              <b className="text-lg leading-none tracking-[-0.02em] text-ink">{dayOfMonth(day.isoDate)}</b>
               <span className="text-[10px] text-ink2 truncate max-w-full">{day.city}</span>
             </button>
           );
@@ -189,15 +255,15 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
           <div className="flex items-center gap-2 self-end md:self-center">
             <button
-              onClick={() => setSelectedDayNumber(Math.max(1, currentDay.dayNumber - 1))}
-              disabled={currentDay.dayNumber <= 1}
+              onClick={() => setSelectedDayNumber(Math.max(minDay, currentDay.dayNumber - 1))}
+              disabled={currentDay.dayNumber <= minDay}
               className="p-2 rounded-xl border border-line text-ink2 hover:text-ink hover:border-ink disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setSelectedDayNumber(Math.min(10, currentDay.dayNumber + 1))}
-              disabled={currentDay.dayNumber >= 10}
+              onClick={() => setSelectedDayNumber(Math.min(maxDay, currentDay.dayNumber + 1))}
+              disabled={currentDay.dayNumber >= maxDay}
               className="p-2 rounded-xl border border-line text-ink2 hover:text-ink hover:border-ink disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
@@ -330,15 +396,23 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       </Surface>
 
       {isEditingDay && editingDayData && (
-        <Modal title={`Editar Día ${editingDayData.dayNumber}: ${editingDayData.city}`} onClose={() => setIsEditingDay(false)}>
+        <Modal
+          title={isNewDay ? 'Agregar día al itinerario' : `Editar Día ${editingDayData.dayNumber}: ${editingDayData.city}`}
+          onClose={() => setIsEditingDay(false)}
+        >
           <form onSubmit={handleSaveDayEdit} className="grid gap-3">
-            <Field label="Título del día">
-              <input value={editingDayData.title} onChange={(e) => setEditingDayData({ ...editingDayData, title: e.target.value })} className={inputCls} required />
-            </Field>
-            <Field label="Frase / tagline">
-              <input value={editingDayData.tagline} onChange={(e) => setEditingDayData({ ...editingDayData, tagline: e.target.value })} className={inputCls} />
-            </Field>
             <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Fecha">
+                <input
+                  type="date"
+                  value={editingDayData.isoDate}
+                  onChange={(e) =>
+                    setEditingDayData({ ...editingDayData, isoDate: e.target.value, date: formatSpanishDate(e.target.value) })
+                  }
+                  className={inputCls}
+                  required
+                />
+              </Field>
               <Field label="Ciudad">
                 <select
                   value={editingDayData.city}
@@ -350,10 +424,17 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                   ))}
                 </select>
               </Field>
-              <Field label="Presupuesto estimado (COP)">
-                <input type="number" value={editingDayData.estimatedBudgetCOP} onChange={(e) => setEditingDayData({ ...editingDayData, estimatedBudgetCOP: Number(e.target.value) })} className={inputCls} required />
-              </Field>
             </div>
+            <p className="text-xs text-ink2 -mt-1">{formatSpanishDate(editingDayData.isoDate)}</p>
+            <Field label="Título del día">
+              <input value={editingDayData.title} onChange={(e) => setEditingDayData({ ...editingDayData, title: e.target.value })} className={inputCls} required />
+            </Field>
+            <Field label="Frase / tagline">
+              <input value={editingDayData.tagline} onChange={(e) => setEditingDayData({ ...editingDayData, tagline: e.target.value })} className={inputCls} />
+            </Field>
+            <Field label="Presupuesto estimado (COP)">
+              <input type="number" value={editingDayData.estimatedBudgetCOP} onChange={(e) => setEditingDayData({ ...editingDayData, estimatedBudgetCOP: Number(e.target.value) })} className={inputCls} required />
+            </Field>
             <Field label="Hospedaje">
               <input value={editingDayData.lodging} onChange={(e) => setEditingDayData({ ...editingDayData, lodging: e.target.value })} className={inputCls} />
             </Field>
@@ -363,9 +444,23 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             <Field label="Transporte">
               <input value={editingDayData.transport} onChange={(e) => setEditingDayData({ ...editingDayData, transport: e.target.value })} className={inputCls} />
             </Field>
-            <div className="flex justify-end gap-2 pt-2 border-t border-line">
-              <Button type="button" variant="ghost" onClick={() => setIsEditingDay(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSaving}>{isSaving ? 'Guardando...' : 'Guardar cambios'}</Button>
+            <div className="flex justify-between items-center gap-2 pt-2 border-t border-line">
+              {!isNewDay ? (
+                <button
+                  type="button"
+                  onClick={handleDeleteDay}
+                  disabled={isDeletingDay}
+                  className="inline-flex items-center gap-1.5 text-bad text-sm font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  <AlertTriangle className="w-4 h-4" /> {isDeletingDay ? 'Quitando...' : 'Quitar este día'}
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={() => setIsEditingDay(false)}>Cancelar</Button>
+                <Button type="submit" disabled={isSaving}>{isSaving ? 'Guardando...' : 'Guardar cambios'}</Button>
+              </div>
             </div>
           </form>
         </Modal>

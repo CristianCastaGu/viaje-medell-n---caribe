@@ -10,6 +10,7 @@ import {
   TransportLeg,
 } from '../types';
 import * as store from './tripStore.js';
+import { resolveGoogleMapsLink } from './mapsLink.js';
 
 // Palabra secreta del grupo y contraseña del admin.
 // Pueden sobreescribirse por variables de entorno (recomendado si el
@@ -113,6 +114,88 @@ export function createApiApp(): Express {
       }
       const itinerary = await store.upsertItineraryDay(updatedDay);
       res.json({ success: true, itinerary });
+    })
+  );
+
+  // Delete a day from the itinerary (Admin)
+  app.delete(
+    '/api/trip/itinerary/:dayNumber',
+    wrap(async (req, res) => {
+      const dayNumber = Number(req.params.dayNumber);
+      if (!dayNumber) {
+        res.status(400).json({ error: 'Número de día inválido.' });
+        return;
+      }
+      const { deleted, itinerary } = await store.deleteItineraryDay(dayNumber);
+      if (!deleted) {
+        res.status(404).json({ error: 'Día no encontrado.' });
+        return;
+      }
+      res.json({ success: true, itinerary });
+    })
+  );
+
+  // Add traveler directly (Admin)
+  app.post(
+    '/api/trip/travelers',
+    wrap(async (req, res) => {
+      const { name, avatar } = req.body || {};
+      const trimmedName = (name || '').trim();
+      if (!trimmedName) {
+        res.status(400).json({ error: 'El nombre es obligatorio.' });
+        return;
+      }
+      const existing = await store.findTravelerByName(trimmedName);
+      if (existing) {
+        res.status(400).json({ error: 'Ya existe un viajero con ese nombre.' });
+        return;
+      }
+      const traveler = await store.createTraveler({
+        id: newId('usr'),
+        name: trimmedName,
+        avatar: avatar || DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)],
+        joinedAt: new Date().toISOString(),
+      });
+      const state = await store.getFullState();
+      res.json({ success: true, traveler, state });
+    })
+  );
+
+  // Remove traveler (Admin)
+  app.delete(
+    '/api/trip/travelers/:id',
+    wrap(async (req, res) => {
+      const deleted = await store.deleteTraveler(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Viajero no encontrado.' });
+        return;
+      }
+      const state = await store.getFullState();
+      res.json({ success: true, state });
+    })
+  );
+
+  // Resolver de enlaces de Google Maps: convierte un link (incluidos los
+  // acortados maps.app.goo.gl) en {lat, lng}, para que el admin no tenga
+  // que escribir coordenadas a mano.
+  app.post(
+    '/api/trip/resolve-maps-link',
+    wrap(async (req, res) => {
+      const { url } = req.body || {};
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ error: 'Falta el enlace de Google Maps.' });
+        return;
+      }
+      try {
+        const coords = await resolveGoogleMapsLink(url);
+        if (!coords) {
+          res.status(400).json({ error: 'No pudimos leer coordenadas de ese enlace.' });
+          return;
+        }
+        res.json({ success: true, ...coords });
+      } catch {
+        res.status(400).json({ error: 'No pudimos abrir ese enlace de Google Maps.' });
+      }
     })
   );
 
@@ -367,7 +450,7 @@ export function createApiApp(): Express {
   app.post(
     '/api/trip/places',
     wrap(async (req, res) => {
-      const { city, name, category, description, lat, lng } = req.body || {};
+      const { city, name, category, description, estimatedCostCOP, lat, lng } = req.body || {};
       if (!city || !name) {
         res.status(400).json({ error: 'Ciudad y nombre son obligatorios.' });
         return;
@@ -378,6 +461,8 @@ export function createApiApp(): Express {
         name: String(name).trim(),
         category: category || 'imperdible',
         description: (description || '').trim(),
+        estimatedCostCOP:
+          estimatedCostCOP !== undefined && estimatedCostCOP !== '' ? Number(estimatedCostCOP) : undefined,
         lat: lat !== undefined && lat !== '' ? Number(lat) : undefined,
         lng: lng !== undefined && lng !== '' ? Number(lng) : undefined,
       };

@@ -42,6 +42,7 @@ export interface Place {
   name: string;
   category: PlaceCategory;
   description: string;
+  estimatedCostCOP?: number;
   lat?: number;
   lng?: number;
 }
