@@ -23,9 +23,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
 }) => {
   const tabs: { id: ActiveTab; label: string; badge?: number }[] = [
     { id: 'itinerario', label: 'Ruta' },
-    // 'mapa' queda fuera por ahora: src/data/mapData.ts todavía tiene las
-    // paradas del itinerario ficticio de desarrollo. Los lugares reales ya
-    // abren en Google Maps desde la pestaña Lugares.
+    { id: 'mapa', label: 'Mapa' },
     { id: 'lugares', label: 'Lugares' },
     { id: 'hospedaje', label: 'Hospedaje' },
     { id: 'transporte', label: 'Transporte' },

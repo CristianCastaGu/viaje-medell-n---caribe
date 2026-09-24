@@ -125,6 +125,41 @@ h1, h2, h3, .font-heading {
   }
 }
 
+/* Popups de Leaflet (mapa de la ruta): que se vean parte del sistema,
+   no el globo blanco por defecto de la librería. */
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.leaflet-popup-tip {
+  background: var(--color-surface);
+}
+.leaflet-popup-content {
+  margin: 10px 14px;
+}
+.leaflet-container {
+  background: var(--color-soft);
+  font-family: var(--font-sans);
+}
+/* Modo oscuro del mapa: se invierte el tile de OpenStreetMap en vez de
+   pedir un set de tiles oscuro aparte (los basemaps oscuros gratuitos
+   sin API key son poco confiables). */
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+  }
+}
+.leaflet-control-zoom a {
+  background: var(--color-surface) !important;
+  color: var(--color-ink) !important;
+  border-color: var(--color-line) !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
