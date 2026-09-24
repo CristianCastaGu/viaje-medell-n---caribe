@@ -8,6 +8,7 @@ import {
   Place,
   Lodging,
   TransportLeg,
+  Announcement,
 } from './types';
 import { INITIAL_TRIP_STATE } from './defaultData';
 
@@ -320,6 +321,32 @@ export async function createTransportLeg(payload: Omit<TransportLeg, 'id'>): Pro
 export async function deleteTransportLeg(id: string): Promise<boolean> {
   try {
     const res = await fetch(`/api/trip/transport/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Avisos del grupo (admin)
+// ---------------------------------------------------------------------
+
+export async function createAnnouncement(text: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/trip/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteAnnouncement(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/announcements/${id}`, { method: 'DELETE' });
     return res.ok;
   } catch {
     return false;

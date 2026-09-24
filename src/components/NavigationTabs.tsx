@@ -22,8 +22,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   totalLoansCount,
 }) => {
   const tabs: { id: ActiveTab; label: string; badge?: number }[] = [
+    { id: 'inicio', label: 'Inicio' },
     { id: 'itinerario', label: 'Ruta' },
-    { id: 'mapa', label: 'Mapa' },
     { id: 'lugares', label: 'Lugares' },
     { id: 'hospedaje', label: 'Hospedaje' },
     { id: 'transporte', label: 'Transporte' },

@@ -41,6 +41,8 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
     name: '',
     category: 'imperdible' as PlaceCategory,
     description: '',
+    lat: '',
+    lng: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,10 +52,17 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
   const handleAdd = async () => {
     if (!form.name.trim()) return;
     setIsSaving(true);
-    const ok = await createPlace({ ...form, name: form.name.trim(), description: form.description.trim() });
+    const ok = await createPlace({
+      city: form.city,
+      name: form.name.trim(),
+      category: form.category,
+      description: form.description.trim(),
+      lat: form.lat ? Number(form.lat) : undefined,
+      lng: form.lng ? Number(form.lng) : undefined,
+    });
     setIsSaving(false);
     if (ok) {
-      setForm({ city: form.city, name: '', category: 'imperdible', description: '' });
+      setForm({ city: form.city, name: '', category: 'imperdible', description: '', lat: '', lng: '' });
       setIsAdding(false);
       onRefresh();
     }
@@ -131,6 +140,31 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
               className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 min-h-[80px] text-ink"
             />
           </label>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="grid gap-1.5">
+              <span className="text-sm font-semibold text-ink">Latitud (opcional)</span>
+              <input
+                value={form.lat}
+                onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                placeholder="Ej. 10.4227"
+                inputMode="decimal"
+                className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-sm font-semibold text-ink">Longitud (opcional)</span>
+              <input
+                value={form.lng}
+                onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                placeholder="Ej. -75.5389"
+                inputMode="decimal"
+                className="w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink"
+              />
+            </label>
+          </div>
+          <p className="text-[11px] text-ink2 -mt-1">
+            Si las dejas vacías, el lugar igual aparece en la lista, pero no tendrá una posición exacta en el mapa de la Ruta.
+          </p>
           <div className="flex gap-2.5">
             <Button onClick={handleAdd} disabled={isSaving || !form.name.trim()}>
               {isSaving ? 'Guardando...' : 'Guardar lugar'}

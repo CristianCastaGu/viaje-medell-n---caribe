@@ -3,14 +3,16 @@ import {
   MapPin, Building, Bus, DollarSign, Clock, Plus, Edit2, Trash2, CheckCircle2,
   ChevronLeft, ChevronRight, Navigation, X, Lightbulb, Send,
 } from 'lucide-react';
-import { ItineraryDay, ActivityItem, ActivityCategory, Traveler, SuggestionCategory, CityName } from '../types';
+import { ItineraryDay, ActivityItem, ActivityCategory, Traveler, SuggestionCategory, CityName, Place } from '../types';
 import { formatCOP } from '../utils/debts';
 import { updateItineraryDay, createSuggestion } from '../api';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { Button, Chip, CityDot, Field, Modal, SectionHeader, Surface, TotalRow, inputCls } from './ui';
+import { RouteMap } from './RouteMap';
 
 interface ItineraryViewProps {
   itinerary: ItineraryDay[];
+  places: Place[];
   isAdmin: boolean;
   currentUser?: Traveler | null;
   onItineraryUpdated: () => void;
@@ -29,6 +31,7 @@ const CATEGORY_LABEL: Record<ActivityCategory, string> = {
 
 export const ItineraryView: React.FC<ItineraryViewProps> = ({
   itinerary,
+  places,
   isAdmin,
   currentUser,
   onItineraryUpdated,
@@ -206,6 +209,16 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
               </Button>
             )}
           </div>
+        </div>
+
+        <div className="pt-5">
+          <RouteMap
+            itinerary={itinerary}
+            places={places}
+            currentDay={currentDay}
+            isAdmin={isAdmin}
+            onRefresh={onItineraryUpdated}
+          />
         </div>
 
         <div className="grid sm:grid-cols-3 gap-3 py-5">

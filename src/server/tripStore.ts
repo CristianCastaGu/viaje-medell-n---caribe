@@ -11,6 +11,7 @@ import {
   Place,
   Lodging,
   TransportLeg,
+  Announcement,
 } from '../types';
 
 // =====================================================================
@@ -116,6 +117,13 @@ async function seedIfEmpty(): Promise<void> {
       seed.transportLegs.map((tl) => transportLegToRow(tl))
     );
     if (transportErr) throw transportErr;
+  }
+
+  if (seed.announcements.length > 0) {
+    const { error: annErr } = await supabase.from('announcements').insert(
+      seed.announcements.map((a) => announcementToRow(a))
+    );
+    if (annErr) throw annErr;
   }
 }
 
@@ -255,6 +263,8 @@ function placeToRow(p: Place) {
     name: p.name,
     category: p.category,
     description: p.description,
+    lat: p.lat ?? null,
+    lng: p.lng ?? null,
   };
 }
 
@@ -265,7 +275,17 @@ function rowToPlace(r: any): Place {
     name: r.name,
     category: r.category,
     description: r.description ?? '',
+    lat: r.lat ?? undefined,
+    lng: r.lng ?? undefined,
   };
+}
+
+function announcementToRow(a: Announcement) {
+  return { id: a.id, text: a.text, created_at: a.createdAt };
+}
+
+function rowToAnnouncement(r: any): Announcement {
+  return { id: r.id, text: r.text, createdAt: r.created_at };
 }
 
 function lodgingToRow(l: Lodging) {
@@ -341,6 +361,7 @@ export async function getFullState(): Promise<TripState> {
     placesRes,
     lodgingRes,
     transportRes,
+    announcementsRes,
     configRes,
   ] = await Promise.all([
     supabase.from('travelers').select('*').order('joined_at', { ascending: true }),
@@ -351,6 +372,7 @@ export async function getFullState(): Promise<TripState> {
     supabase.from('places').select('*').order('id', { ascending: true }),
     supabase.from('lodging').select('*').order('from_date', { ascending: true }),
     supabase.from('transport_legs').select('*').order('date', { ascending: true }),
+    supabase.from('announcements').select('*').order('created_at', { ascending: false }),
     supabase.from('trip_config').select('*').eq('id', 1).maybeSingle(),
   ]);
 
@@ -363,6 +385,7 @@ export async function getFullState(): Promise<TripState> {
     placesRes,
     lodgingRes,
     transportRes,
+    announcementsRes,
     configRes,
   ]) {
     if (res.error) throw res.error;
@@ -379,6 +402,7 @@ export async function getFullState(): Promise<TripState> {
     places: (placesRes.data ?? []).map(rowToPlace),
     lodging: (lodgingRes.data ?? []).map(rowToLodging),
     transportLegs: (transportRes.data ?? []).map(rowToTransportLeg),
+    announcements: (announcementsRes.data ?? []).map(rowToAnnouncement),
     config: cfg
       ? {
           tripName: cfg.trip_name,
@@ -675,6 +699,34 @@ export async function deleteTransportLeg(id: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------
+// Avisos del grupo (admin)
+// ---------------------------------------------------------------------
+
+export async function insertAnnouncement(a: Announcement): Promise<Announcement[]> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('announcements').insert(announcementToRow(a));
+  if (error) throw error;
+  return listAnnouncements();
+}
+
+export async function listAnnouncements(): Promise<Announcement[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToAnnouncement);
+}
+
+export async function deleteAnnouncement(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.from('announcements').delete().eq('id', id).select();
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+// ---------------------------------------------------------------------
 // Configuración / reinicio
 // ---------------------------------------------------------------------
 
@@ -713,6 +765,7 @@ export async function resetTripData(): Promise<TripState> {
     'places',
     'lodging',
     'transport_legs',
+    'announcements',
   ];
   await Promise.all(textIdTables.map(async (table) => {
     const { error } = await supabase.from(table).delete().neq('id', '__never_matches__');

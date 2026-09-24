@@ -9,8 +9,8 @@ import {
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Navbar } from './components/Navbar';
 import { NavigationTabs } from './components/NavigationTabs';
+import { HomeView } from './components/HomeView';
 import { ItineraryView } from './components/ItineraryView';
-import { FullTripMapView } from './components/FullTripMapView';
 import { PlacesView } from './components/PlacesView';
 import { LodgingView } from './components/LodgingView';
 import { TransportView } from './components/TransportView';
@@ -24,7 +24,7 @@ export default function App() {
   const [tripState, setTripState] = useState<TripState>(INITIAL_TRIP_STATE);
   const [currentUser, setCurrentUser] = useState<Traveler | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('itinerario');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('inicio');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -164,22 +164,30 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1040px] w-full mx-auto px-[18px] pt-7 pb-24">
+        {activeTab === 'inicio' && (
+          <HomeView
+            itinerary={tripState.itinerary}
+            announcements={tripState.announcements}
+            polls={tripState.polls}
+            suggestions={tripState.suggestions}
+            loans={tripState.loans}
+            currentUser={currentUser}
+            isAdmin={isAdmin}
+            onRefresh={() => loadState()}
+            onSelectTab={setActiveTab}
+          />
+        )}
+
         {activeTab === 'itinerario' && (
           <ItineraryView
             itinerary={tripState.itinerary}
+            places={tripState.places}
             isAdmin={isAdmin}
             currentUser={currentUser}
             onItineraryUpdated={() => loadState()}
             onNavigateToSuggestions={(dayNumber) => {
               setActiveTab('sugerencias');
             }}
-          />
-        )}
-
-        {activeTab === 'mapa' && (
-          <FullTripMapView
-            itinerary={tripState.itinerary}
-            onSelectDay={() => setActiveTab('itinerario')}
           />
         )}
 

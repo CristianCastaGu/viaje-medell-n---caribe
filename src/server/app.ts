@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import {
   ActivityItem,
+  Announcement,
   ItineraryDay,
   Lodging,
   Place,
@@ -366,7 +367,7 @@ export function createApiApp(): Express {
   app.post(
     '/api/trip/places',
     wrap(async (req, res) => {
-      const { city, name, category, description } = req.body || {};
+      const { city, name, category, description, lat, lng } = req.body || {};
       if (!city || !name) {
         res.status(400).json({ error: 'Ciudad y nombre son obligatorios.' });
         return;
@@ -377,6 +378,8 @@ export function createApiApp(): Express {
         name: String(name).trim(),
         category: category || 'imperdible',
         description: (description || '').trim(),
+        lat: lat !== undefined && lat !== '' ? Number(lat) : undefined,
+        lng: lng !== undefined && lng !== '' ? Number(lng) : undefined,
       };
       const places = await store.insertPlace(place);
       res.json({ success: true, place, places });
@@ -465,6 +468,38 @@ export function createApiApp(): Express {
         return;
       }
       res.json({ success: true, legs: await store.listTransportLegs() });
+    })
+  );
+
+  // ---------------- Avisos del grupo (admin) ----------------
+
+  app.post(
+    '/api/trip/announcements',
+    wrap(async (req, res) => {
+      const { text } = req.body || {};
+      if (!text || !String(text).trim()) {
+        res.status(400).json({ error: 'El aviso no puede estar vacío.' });
+        return;
+      }
+      const announcement: Announcement = {
+        id: newId('ann'),
+        text: String(text).trim(),
+        createdAt: new Date().toISOString(),
+      };
+      const announcements = await store.insertAnnouncement(announcement);
+      res.json({ success: true, announcement, announcements });
+    })
+  );
+
+  app.delete(
+    '/api/trip/announcements/:id',
+    wrap(async (req, res) => {
+      const deleted = await store.deleteAnnouncement(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Aviso no encontrado.' });
+        return;
+      }
+      res.json({ success: true, announcements: await store.listAnnouncements() });
     })
   );
 

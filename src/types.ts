@@ -42,6 +42,14 @@ export interface Place {
   name: string;
   category: PlaceCategory;
   description: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface Announcement {
+  id: string;
+  text: string;
+  createdAt: string;
 }
 
 export interface Lodging {
@@ -130,6 +138,7 @@ export interface TripState {
   places: Place[];
   lodging: Lodging[];
   transportLegs: TransportLeg[];
+  announcements: Announcement[];
   config: {
     autoApprovePolls: boolean;
     tripName: string;
@@ -139,8 +148,8 @@ export interface TripState {
 }
 
 export type ActiveTab =
+  | 'inicio'
   | 'itinerario'
-  | 'mapa'
   | 'lugares'
   | 'hospedaje'
   | 'transporte'
