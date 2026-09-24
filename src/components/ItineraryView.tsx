@@ -9,6 +9,7 @@ import { updateItineraryDay, createSuggestion } from '../api';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { Button, Chip, CityDot, Field, Modal, SectionHeader, Surface, TotalRow, inputCls } from './ui';
 import { RouteMap } from './RouteMap';
+import { useLang } from '../lib/i18n';
 
 interface ItineraryViewProps {
   itinerary: ItineraryDay[];
@@ -59,6 +60,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   const [proposalSuccessMsg, setProposalSuccessMsg] = useState(false);
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
 
+  const { t } = useLang();
   const currentDay = itinerary.find((d) => d.dayNumber === selectedDayNumber) || itinerary[0];
   const totalTripBudget = itinerary.reduce((acc, d) => acc + (d.estimatedBudgetCOP || 0), 0);
 
@@ -144,12 +146,9 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   return (
     <div>
-      <SectionHeader
-        title="La ruta, día por día"
-        lead="Toca un día del calendario para ir a su plan."
-      />
+      <SectionHeader title={t('route_title')} lead={t('route_lead')} />
 
-      <TotalRow label="Presupuesto estimado total por persona" value={formatCOP(totalTripBudget)} />
+      <TotalRow label={t('route_total_budget')} value={formatCOP(totalTripBudget)} />
 
       {/* Franja de días (equivalente al calendario del prototipo, en 10 días fijos) */}
       <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 my-6">
@@ -205,7 +204,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             </button>
             {isAdmin && (
               <Button size="sm" variant="ghost" onClick={handleStartEditDay}>
-                <Edit2 className="w-3.5 h-3.5" /> Editar día
+                <Edit2 className="w-3.5 h-3.5" /> {t('route_edit_day')}
               </Button>
             )}
           </div>
@@ -224,20 +223,20 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         <div className="grid sm:grid-cols-3 gap-3 py-5">
           <div className="bg-soft rounded-xl p-3.5">
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
-              <Building className="w-3.5 h-3.5" /> Hospedaje
+              <Building className="w-3.5 h-3.5" /> {t('route_lodging')}
             </div>
-            <p className="text-sm font-bold text-ink">{currentDay.lodging || 'Por coordinar'}</p>
+            <p className="text-sm font-bold text-ink">{currentDay.lodging || t('route_lodging_fallback')}</p>
             {currentDay.lodgingNotes && <p className="text-xs text-ink2 mt-1">{currentDay.lodgingNotes}</p>}
           </div>
           <div className="bg-soft rounded-xl p-3.5">
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
-              <Bus className="w-3.5 h-3.5" /> Transporte
+              <Bus className="w-3.5 h-3.5" /> {t('route_transport')}
             </div>
-            <p className="text-sm font-bold text-ink">{currentDay.transport || 'A pie / local'}</p>
+            <p className="text-sm font-bold text-ink">{currentDay.transport || t('route_transport_fallback')}</p>
           </div>
           <div className="bg-soft rounded-xl p-3.5">
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
-              <DollarSign className="w-3.5 h-3.5" /> Presupuesto del día
+              <DollarSign className="w-3.5 h-3.5" /> {t('route_day_budget')}
             </div>
             <p className="text-lg font-bold text-ink">{formatCOP(currentDay.estimatedBudgetCOP)}</p>
           </div>
@@ -247,15 +246,15 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-bold text-ink flex items-center gap-2">
               <Navigation className="w-4 h-4 text-ink2" />
-              Plan del día ({currentDay.activities.length})
+              {t('route_plan')} ({currentDay.activities.length})
             </h4>
             <div className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setIsProposalModalOpen(true)}>
-                <Lightbulb className="w-3.5 h-3.5" /> Proponer algo
+                <Lightbulb className="w-3.5 h-3.5" /> {t('route_propose')}
               </Button>
               {isAdmin && (
                 <Button size="sm" variant="ghost" onClick={() => setIsAddingActivity((v) => !v)}>
-                  <Plus className="w-3.5 h-3.5" /> Agregar actividad
+                  <Plus className="w-3.5 h-3.5" /> {t('route_add_activity')}
                 </Button>
               )}
             </div>
@@ -289,7 +288,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           )}
 
           {currentDay.activities.length === 0 ? (
-            <p className="text-center py-6 text-ink2 text-sm italic">No hay actividades registradas aún.</p>
+            <p className="text-center py-6 text-ink2 text-sm italic">{t('route_no_activities')}</p>
           ) : (
             <ul className="grid gap-2.5 list-none p-0 m-0">
               {currentDay.activities.map((act, index) => (
@@ -374,7 +373,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
       {isProposalModalOpen && (
         <Modal
-          title="Proponer algo para este día"
+          title={t('propose_title')}
           onClose={() => setIsProposalModalOpen(false)}
         >
           <p className="text-xs text-ink2 -mt-2">
@@ -383,29 +382,29 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           {proposalSuccessMsg ? (
             <div className="p-6 text-center grid gap-2 bg-ok/10 rounded-xl border border-ok/30">
               <CheckCircle2 className="w-8 h-8 text-ok mx-auto" />
-              <p className="text-sm font-bold text-ink">¡Enviada! Queda en revisión del admin.</p>
+              <p className="text-sm font-bold text-ink">{t('propose_sent')}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmitProposal} className="grid gap-3">
-              <Field label="Título">
+              <Field label={t('propose_field_title')}>
                 <input value={proposalTitle} onChange={(e) => setProposalTitle(e.target.value)} placeholder="Ej. Parada en un mirador" className={inputCls} required />
               </Field>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Categoría">
+                <Field label={t('propose_field_category')}>
                   <select value={proposalCategory} onChange={(e) => setProposalCategory(e.target.value as SuggestionCategory)} className={inputCls}>
-                    <option value="actividad">Actividad</option>
-                    <option value="restaurante">Restaurante</option>
-                    <option value="transporte alterno">Transporte</option>
-                    <option value="rumba/noche">Rumba</option>
-                    <option value="hospedaje">Hospedaje</option>
-                    <option value="otro">Otro</option>
+                    <option value="actividad">{t('propose_cat_activity')}</option>
+                    <option value="restaurante">{t('propose_cat_restaurant')}</option>
+                    <option value="transporte alterno">{t('propose_cat_transport')}</option>
+                    <option value="rumba/noche">{t('propose_cat_party')}</option>
+                    <option value="hospedaje">{t('propose_cat_lodging')}</option>
+                    <option value="otro">{t('propose_cat_other')}</option>
                   </select>
                 </Field>
-                <Field label="Costo estimado (opcional)">
+                <Field label={t('propose_field_cost')}>
                   <input type="number" value={proposalCost} onChange={(e) => setProposalCost(e.target.value)} placeholder="45000" className={inputCls} />
                 </Field>
               </div>
-              <Field label="Detalles">
+              <Field label={t('propose_field_details')}>
                 <textarea value={proposalDesc} onChange={(e) => setProposalDesc(e.target.value)} rows={3} placeholder="Qué haríamos y por qué vale la pena..." className={inputCls} required />
               </Field>
               <div className="flex items-center justify-between pt-2 border-t border-line">
@@ -418,11 +417,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                     }}
                     className="text-xs font-semibold text-pal hover:underline cursor-pointer"
                   >
-                    Ver todas las ideas →
+                    {t('propose_see_all')}
                   </button>
                 )}
                 <Button type="submit" disabled={isSubmittingProposal}>
-                  <Send className="w-3.5 h-3.5" /> {isSubmittingProposal ? 'Enviando...' : 'Enviar'}
+                  <Send className="w-3.5 h-3.5" /> {isSubmittingProposal ? t('propose_sending') : t('propose_send')}
                 </Button>
               </div>
             </form>

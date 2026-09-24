@@ -57,6 +57,12 @@ export default function App() {
   }, [loadState]);
 
   const handleGroupAuthenticated = (traveler: Traveler) => {
+    // Entrar como grupo general SIEMPRE arranca sin privilegios de admin,
+    // incluso si este navegador tenía una sesión de admin activa de antes
+    // (ej. el organizador probando, o alguien más usando el mismo equipo).
+    // Quien quiera ser admin lo hace explícitamente con "Soy el administrador".
+    setIsAdmin(false);
+    setLocalAdminSession(false);
     setCurrentUser(traveler);
     loadState();
   };
@@ -140,7 +146,7 @@ export default function App() {
   const totalLoansCount = tripState.loans.filter((l) => !l.settled).length;
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col text-ink selection:bg-ink selection:text-bg">
+    <div className="min-h-screen flex flex-col text-ink selection:bg-ink selection:text-bg">
       {/* Top Navbar */}
       <Navbar
         currentUser={currentUser}

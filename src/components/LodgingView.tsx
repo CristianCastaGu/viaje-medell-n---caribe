@@ -4,6 +4,7 @@ import { Lodging, CityName } from '../types';
 import { CITY_LABEL, CITY_ORDER, cityCodeFromName } from '../lib/cityTheme';
 import { createLodging, deleteLodging } from '../api';
 import { Button, Chip, CityDot, EmptyState, SectionHeader, Ticket, TotalRow, formatCOP } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface LodgingViewProps {
   lodging: Lodging[];
@@ -31,6 +32,7 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
   onRefresh,
   onNavigateToSuggestions,
 }) => {
+  const { t } = useLang();
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -74,14 +76,14 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
   return (
     <div>
       <SectionHeader
-        title="Dónde dormimos"
-        lead="Los precios marcados como estimados son supuestos hasta que reservemos."
+        title={t('lodging_title')}
+        lead={t('lodging_lead')}
         actions={
           <>
-            <Button onClick={onNavigateToSuggestions}>Sugerir hospedaje</Button>
+            <Button onClick={onNavigateToSuggestions}>{t('lodging_suggest')}</Button>
             {isAdmin && (
               <Button variant="ghost" size="sm" onClick={() => setIsAdding((v) => !v)}>
-                <Plus className="w-4 h-4" /> Agregar hospedaje
+                <Plus className="w-4 h-4" /> {t('lodging_add')}
               </Button>
             )}
           </>
@@ -177,7 +179,7 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
       )}
 
       {sorted.length === 0 ? (
-        <EmptyState>Todavía no hay hospedajes cargados.</EmptyState>
+        <EmptyState>{t('lodging_empty')}</EmptyState>
       ) : (
         <>
           <div className="grid gap-4">
@@ -188,21 +190,21 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
                   key={l.id}
                   city={cityCodeFromName(l.city)}
                   stubTop={n}
-                  stubBottom={n === 1 ? 'noche' : 'noches'}
+                  stubBottom={n === 1 ? t('lodging_night') : t('lodging_nights')}
                   end={
                     <>
                       <Chip tone={l.isEstimated ? 'wait' : 'ok'}>
-                        {l.isEstimated ? 'Precio estimado' : 'Dato del grupo'}
+                        {l.isEstimated ? t('lodging_estimated') : t('lodging_confirmed')}
                       </Chip>
                       <div>
                         <b className="text-[22px] tracking-[-0.03em] text-ink">
                           {formatCOP(l.pricePerNightCOP)}
                         </b>
                         <br />
-                        <span className="text-ink2 text-sm">por persona / noche</span>
+                        <span className="text-ink2 text-sm">{t('lodging_per_night')}</span>
                         <br />
                         <span className="text-sm text-ink">
-                          Total: {formatCOP(n * l.pricePerNightCOP)}
+                          {t('lodging_total')}: {formatCOP(n * l.pricePerNightCOP)}
                         </span>
                       </div>
                       {isAdmin && (
@@ -210,7 +212,7 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
                           onClick={() => handleDelete(l.id, l.name)}
                           className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Quitar
+                          <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
                         </button>
                       )}
                     </>
@@ -226,7 +228,7 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
               );
             })}
           </div>
-          <TotalRow label="Hospedaje por persona" value={formatCOP(total)} />
+          <TotalRow label={t('lodging_total_row')} value={formatCOP(total)} />
         </>
       )}
     </div>

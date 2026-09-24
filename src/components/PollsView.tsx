@@ -4,6 +4,7 @@ import { Poll, Traveler } from '../types';
 import { formatDateEs } from '../utils/debts';
 import { createPoll, voteOnPoll, updatePollStatus } from '../api';
 import { Button, Chip, EmptyState, Field, SectionHeader, Surface, inputCls } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface PollsViewProps {
   polls: Poll[];
@@ -22,6 +23,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
   onRefresh,
   onToggleAutoApprove,
 }) => {
+  const { t } = useLang();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [description, setDescription] = useState('');
@@ -104,11 +106,11 @@ export const PollsView: React.FC<PollsViewProps> = ({
   return (
     <div>
       <SectionHeader
-        title="Votaciones"
-        lead="Elige una opción y listo: tu voto queda contado en el momento."
+        title={t('polls_title')}
+        lead={t('polls_lead')}
         actions={
           <Button onClick={() => setIsFormOpen((v) => !v)}>
-            <Plus className="w-4 h-4" /> Proponer encuesta
+            <Plus className="w-4 h-4" /> {t('polls_propose')}
           </Button>
         }
       />
@@ -215,7 +217,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
       )}
 
       {visiblePolls.length === 0 ? (
-        <EmptyState>No hay encuestas todavía.</EmptyState>
+        <EmptyState>{t('polls_empty')}</EmptyState>
       ) : (
         <div className="grid gap-4">
           {visiblePolls.map((poll) => {
@@ -228,11 +230,11 @@ export const PollsView: React.FC<PollsViewProps> = ({
               <Surface key={poll.id}>
                 <div className="flex justify-between gap-2 flex-wrap items-start mb-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {isActive && <Chip tone="ok">Votación activa</Chip>}
-                    {isClosed && <Chip>Cerrada</Chip>}
+                    {isActive && <Chip tone="ok">{t('polls_active')}</Chip>}
+                    {isClosed && <Chip>{t('polls_closed')}</Chip>}
                     {isPending && (
                       <Chip tone="wait">
-                        <Clock className="w-3 h-3" /> Pendiente de aprobación
+                        <Clock className="w-3 h-3" /> {t('polls_pending')}
                       </Chip>
                     )}
                   </div>
@@ -241,15 +243,15 @@ export const PollsView: React.FC<PollsViewProps> = ({
                       {isPending ? (
                         <>
                           <Button size="sm" onClick={() => handleApprovePoll(poll.id)}>
-                            Aprobar
+                            {t('polls_approve')}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => handleDiscardPoll(poll.id)}>
-                            Descartar
+                            {t('polls_discard')}
                           </Button>
                         </>
                       ) : (
                         <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(poll.id, poll.status)}>
-                          {isActive ? 'Cerrar' : 'Reabrir'}
+                          {isActive ? t('polls_close') : t('polls_reopen')}
                         </Button>
                       )}
                     </div>
@@ -292,7 +294,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
                                   isMine ? 'bg-ink text-bg' : 'border border-line text-ink hover:border-ink'
                                 }`}
                               >
-                                {isMine ? <CheckCircle2 className="w-3.5 h-3.5" /> : 'Votar'}
+                                {isMine ? <CheckCircle2 className="w-3.5 h-3.5" /> : t('polls_vote')}
                               </button>
                             )}
                           </div>
@@ -303,7 +305,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
                 </div>
 
                 <div className="flex justify-between text-xs text-ink2 mt-3 pt-3 border-t border-line">
-                  <span>Propuesta por {poll.createdBy}</span>
+                  <span>{t('polls_proposed_by')} {poll.createdBy}</span>
                   <span>{formatDateEs(poll.createdAt)}</span>
                 </div>
               </Surface>

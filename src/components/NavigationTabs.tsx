@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActiveTab } from '../types';
+import { useLang } from '../lib/i18n';
 
 interface NavigationTabsProps {
   activeTab: ActiveTab;
@@ -21,25 +22,27 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   activePollsCount,
   totalLoansCount,
 }) => {
+  const { t } = useLang();
+
   const tabs: { id: ActiveTab; label: string; badge?: number }[] = [
-    { id: 'inicio', label: 'Inicio' },
-    { id: 'itinerario', label: 'Ruta' },
-    { id: 'lugares', label: 'Lugares' },
-    { id: 'hospedaje', label: 'Hospedaje' },
-    { id: 'transporte', label: 'Transporte' },
-    { id: 'encuestas', label: 'Votar', badge: activePollsCount || undefined },
-    { id: 'sugerencias', label: 'Ideas', badge: pendingSuggestionsCount || undefined },
-    { id: 'prestamos', label: 'Cuentas', badge: totalLoansCount || undefined },
+    { id: 'inicio', label: t('tab_inicio') },
+    { id: 'itinerario', label: t('tab_ruta') },
+    { id: 'lugares', label: t('tab_lugares') },
+    { id: 'hospedaje', label: t('tab_hospedaje') },
+    { id: 'transporte', label: t('tab_transporte') },
+    { id: 'encuestas', label: t('tab_votar'), badge: activePollsCount || undefined },
+    { id: 'sugerencias', label: t('tab_ideas'), badge: pendingSuggestionsCount || undefined },
+    { id: 'prestamos', label: t('tab_cuentas'), badge: totalLoansCount || undefined },
   ];
 
   if (isAdmin) {
-    tabs.push({ id: 'admin', label: 'Admin', badge: pendingSuggestionsCount || undefined });
+    tabs.push({ id: 'admin', label: t('tab_admin'), badge: pendingSuggestionsCount || undefined });
   }
 
   return (
     <nav
       aria-label="Secciones"
-      className="sticky top-[57px] z-30 bg-bg border-b border-line"
+      className="sticky top-[57px] z-30 bg-bg/70 backdrop-blur-md border-b border-line/50"
     >
       <div className="max-w-[1040px] mx-auto px-[18px]">
         <div className="flex gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

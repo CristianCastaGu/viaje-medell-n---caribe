@@ -3,6 +3,7 @@ import { PartyPopper, UserCheck } from 'lucide-react';
 import { Traveler } from '../types';
 import { authenticateGroup, authenticateAdmin } from '../api';
 import { CITY_ORDER, CITY_STYLE } from '../lib/cityTheme';
+import { useLang } from '../lib/i18n';
 
 interface WelcomeScreenProps {
   onGroupAuthenticated: (traveler: Traveler) => void;
@@ -11,10 +12,18 @@ interface WelcomeScreenProps {
 
 const AVATAR_OPTIONS = ['🌴', '🌺', '☕', '🌊', '🧗', '🦜', '🏖️', '🎒', '🕶️', '🛶', '🌞', '🍉'];
 
+// Esta pantalla usa su propia foto de fondo (no cambia con el tema
+// claro/oscuro de la app), así que el texto usa colores fijos en vez de
+// los tokens --color-ink/--color-ink2, que sí invierten en modo oscuro y
+// se volverían casi invisibles sobre una foto clara.
+const TEXT_DARK = 'text-slate-900';
+const TEXT_MUTED = 'text-slate-700';
+
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onGroupAuthenticated,
   onAdminAuthenticated,
 }) => {
+  const { lang, setLang, t } = useLang();
   const [mode, setMode] = useState<'group' | 'admin'>('group');
 
   const [secretWord, setSecretWord] = useState('');
@@ -29,19 +38,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
 
   const fieldCls =
-    'w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink placeholder:text-ink2/60';
-  const labelCls = 'text-sm font-semibold text-ink';
+    'w-full rounded-full border border-white/50 bg-white/35 backdrop-blur-md px-5 py-3 text-slate-900 placeholder:text-slate-600/70 shadow-[0_4px_20px_rgba(0,0,0,0.06)] focus:outline-none focus:ring-2 focus:ring-white/70';
+  const labelCls = `text-sm font-semibold ${TEXT_DARK}`;
 
   const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGroupError('');
 
     if (!secretWord.trim()) {
-      setGroupError('Por favor ingresa la palabra secreta del viaje.');
+      setGroupError(t('welcome_secret_label'));
       return;
     }
     if (!travelerName.trim()) {
-      setGroupError('Por favor dinos cómo te quieres llamar en esta aventura.');
+      setGroupError(t('welcome_name_label'));
       return;
     }
 
@@ -51,12 +60,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
     if (result.success && result.traveler) {
       const traveler = result.traveler;
-      // Mensaje distinto si el nombre ya existía (lo reconocemos y seguimos
-      // con ese perfil) o si es la primera vez que alguien lo usa.
       setWelcomeResult({ name: traveler.name, isNew: result.isNewTraveler !== false });
       setTimeout(() => onGroupAuthenticated(traveler), 1400);
     } else {
-      setGroupError(result.error || 'Palabra secreta inválida. Pregúntale a los organizadores.');
+      setGroupError(result.error || 'Palabra secreta inválida.');
     }
   };
 
@@ -65,7 +72,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     setAdminError('');
 
     if (!adminPassword.trim()) {
-      setAdminError('Ingresa la contraseña de administrador.');
+      setAdminError(t('welcome_admin_password_label'));
       return;
     }
 
@@ -81,18 +88,42 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   return (
-    <div
-      className="min-h-screen grid place-items-center px-[18px] py-6 bg-bg"
-      style={{
-        backgroundImage:
-          'radial-gradient(900px 500px at 85% -10%, color-mix(in srgb, var(--color-pal) 26%, transparent), transparent 70%), radial-gradient(700px 500px at -10% 110%, color-mix(in srgb, var(--color-ctg) 22%, transparent), transparent 70%)',
-      }}
-    >
-      <div className="w-[min(480px,100%)]">
+    <div className="min-h-screen grid place-items-center px-[18px] py-6 relative overflow-hidden">
+      <img
+        src="/welcome-bg.jpg"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-white/10" />
+
+      {/* Selector de idioma, siempre visible en esta pantalla */}
+      <div
+        className="absolute top-4 right-4 z-10 inline-flex rounded-full border border-white/50 bg-white/35 backdrop-blur-md overflow-hidden text-sm font-semibold"
+        role="group"
+        aria-label="Idioma / Language"
+      >
+        <button
+          onClick={() => setLang('es')}
+          aria-pressed={lang === 'es'}
+          className={`px-3 py-1.5 cursor-pointer ${lang === 'es' ? 'bg-slate-900 text-white' : TEXT_DARK}`}
+        >
+          ES
+        </button>
+        <button
+          onClick={() => setLang('en')}
+          aria-pressed={lang === 'en'}
+          className={`px-3 py-1.5 cursor-pointer ${lang === 'en' ? 'bg-slate-900 text-white' : TEXT_DARK}`}
+        >
+          EN
+        </button>
+      </div>
+
+      <div className="w-[min(480px,100%)] relative z-[1]">
         {welcomeResult ? (
-          <div className="text-center grid gap-3 py-10">
+          <div className="text-center grid gap-3 py-10 rounded-3xl bg-white/35 backdrop-blur-md border border-white/50 px-6 shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
             <div
-              className={`w-14 h-14 rounded-2xl grid place-items-center mx-auto text-bg ${
+              className={`w-14 h-14 rounded-2xl grid place-items-center mx-auto text-white ${
                 welcomeResult.isNew ? 'bg-ctg' : 'bg-med'
               }`}
             >
@@ -102,39 +133,20 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <UserCheck className="w-7 h-7" />
               )}
             </div>
-            {welcomeResult.isNew ? (
-              <>
-                <h1 className="text-[28px] font-bold tracking-[-0.03em] text-ink">
-                  ¡Bienvenido a la aventura, {welcomeResult.name}!
-                </h1>
-                <p className="text-ink2">
-                  Ya puedes sugerir lugares, votar los planes y llevar las cuentas con todos.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-[28px] font-bold tracking-[-0.03em] text-ink">
-                  ¡Ya te conocemos, {welcomeResult.name}!
-                </h1>
-                <p className="text-ink2">
-                  Ese nombre ya estaba registrado — continuamos con tu perfil y tu historial tal
-                  como lo dejaste.
-                </p>
-              </>
-            )}
+            <h1 className={`text-[28px] font-bold tracking-[-0.03em] ${TEXT_DARK}`}>
+              {t(welcomeResult.isNew ? 'welcome_new_title' : 'welcome_back_title', { name: welcomeResult.name })}
+            </h1>
+            <p className={TEXT_MUTED}>
+              {t(welcomeResult.isNew ? 'welcome_new_sub' : 'welcome_back_sub')}
+            </p>
           </div>
         ) : (
           <>
-            <h1 className="text-[clamp(42px,12vw,72px)] font-bold leading-[0.95] tracking-[-0.05em] text-ink mb-2">
-              {mode === 'group' ? 'Bienvenido a la aventura' : 'Panel del organizador'}
+            <h1 className={`text-[clamp(42px,12vw,72px)] font-bold leading-[0.95] tracking-[-0.05em] ${TEXT_DARK} mb-2`}>
+              {mode === 'group' ? t('welcome_title_group') : t('welcome_title_admin')}
             </h1>
-            <p className="text-ink2">
-              {mode === 'group'
-                ? 'Colombia · del 9 al 18 de octubre de 2026'
-                : 'Control del itinerario, las ideas del grupo y las encuestas.'}
-            </p>
+            <p className={TEXT_MUTED}>{mode === 'group' ? t('welcome_sub_group') : t('welcome_sub_admin')}</p>
 
-            {/* Una franja por ciudad, en el orden real de la ruta */}
             <div className="flex gap-1.5 my-6" aria-hidden="true">
               {CITY_ORDER.map((c) => (
                 <i key={c} className={`flex-1 h-2 rounded ${CITY_STYLE[c].dot}`} />
@@ -144,35 +156,33 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             {mode === 'group' ? (
               <form onSubmit={handleGroupSubmit} className="grid gap-3.5">
                 <label className="grid gap-1.5">
-                  <span className={labelCls}>¿Cómo te quieres llamar en esta aventura?</span>
+                  <span className={labelCls}>{t('welcome_name_label')}</span>
                   <input
                     id="group-name-input"
                     value={travelerName}
                     onChange={(e) => setTravelerName(e.target.value)}
                     maxLength={24}
                     autoComplete="nickname"
-                    placeholder="Tu nombre o apodo"
+                    placeholder={t('welcome_name_placeholder')}
                     className={fieldCls}
                   />
                 </label>
 
                 <label className="grid gap-1.5">
-                  <span className={labelCls}>
-                    ¿Cuál es la palabra secreta para ser parte de esta aventura?
-                  </span>
+                  <span className={labelCls}>{t('welcome_secret_label')}</span>
                   <input
                     id="group-secret-input"
                     type="password"
                     value={secretWord}
                     onChange={(e) => setSecretWord(e.target.value)}
                     autoComplete="off"
-                    placeholder="Pídesela al organizador"
+                    placeholder={t('welcome_secret_placeholder')}
                     className={fieldCls}
                   />
                 </label>
 
                 <div className="grid gap-1.5">
-                  <span className={labelCls}>Elige tu insignia</span>
+                  <span className={labelCls}>{t('welcome_avatar_label')}</span>
                   <div className="grid grid-cols-6 gap-2">
                     {AVATAR_OPTIONS.map((emoji) => (
                       <button
@@ -180,10 +190,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         type="button"
                         onClick={() => setSelectedAvatar(emoji)}
                         aria-pressed={selectedAvatar === emoji}
-                        className={`h-11 text-xl grid place-items-center rounded-xl border-[1.5px] transition-all cursor-pointer ${
+                        className={`h-11 text-xl grid place-items-center rounded-xl border backdrop-blur-md transition-all cursor-pointer ${
                           selectedAvatar === emoji
-                            ? 'bg-soft border-ink'
-                            : 'bg-surface border-line hover:border-ink2'
+                            ? 'bg-white/70 border-white/80 scale-105'
+                            : 'bg-white/25 border-white/40 hover:bg-white/40'
                         }`}
                       >
                         {emoji}
@@ -193,7 +203,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 </div>
 
                 {groupError && (
-                  <p className="text-bad text-sm font-medium" role="alert">
+                  <p className="text-bad text-sm font-medium bg-white/50 backdrop-blur-md rounded-lg px-3 py-2" role="alert">
                     {groupError}
                   </p>
                 )}
@@ -203,23 +213,23 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     id="btn-join-adventure"
                     type="submit"
                     disabled={isSubmittingGroup}
-                    className="inline-flex items-center justify-center gap-2 bg-ink text-bg border-[1.5px] border-ink font-semibold px-[18px] py-2.5 rounded-xl min-h-[44px] hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 bg-slate-900 text-white border border-slate-900 font-semibold px-[18px] py-2.5 rounded-full min-h-[44px] hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.15)]"
                   >
-                    {isSubmittingGroup ? 'Entrando...' : 'Entrar'}
+                    {isSubmittingGroup ? t('welcome_entering') : t('welcome_enter')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('admin')}
-                    className="text-ink2 underline text-sm py-1.5 cursor-pointer hover:text-ink"
+                    className={`${TEXT_DARK} underline text-sm py-1.5 cursor-pointer hover:opacity-70`}
                   >
-                    Soy el administrador
+                    {t('welcome_be_admin')}
                   </button>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleAdminSubmit} className="grid gap-3.5">
                 <label className="grid gap-1.5">
-                  <span className={labelCls}>Contraseña de administrador</span>
+                  <span className={labelCls}>{t('welcome_admin_password_label')}</span>
                   <input
                     id="admin-password-input"
                     type="password"
@@ -231,7 +241,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 </label>
 
                 {adminError && (
-                  <p className="text-bad text-sm font-medium" role="alert">
+                  <p className="text-bad text-sm font-medium bg-white/50 backdrop-blur-md rounded-lg px-3 py-2" role="alert">
                     {adminError}
                   </p>
                 )}
@@ -241,24 +251,22 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     id="btn-login-admin"
                     type="submit"
                     disabled={isSubmittingAdmin}
-                    className="inline-flex items-center justify-center gap-2 bg-ink text-bg border-[1.5px] border-ink font-semibold px-[18px] py-2.5 rounded-xl min-h-[44px] hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 bg-slate-900 text-white border border-slate-900 font-semibold px-[18px] py-2.5 rounded-full min-h-[44px] hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.15)]"
                   >
-                    {isSubmittingAdmin ? 'Verificando...' : 'Entrar como admin'}
+                    {isSubmittingAdmin ? t('welcome_admin_entering') : t('welcome_admin_enter')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('group')}
-                    className="text-ink2 underline text-sm py-1.5 cursor-pointer hover:text-ink"
+                    className={`${TEXT_DARK} underline text-sm py-1.5 cursor-pointer hover:opacity-70`}
                   >
-                    Volver al acceso del grupo
+                    {t('welcome_back_to_group')}
                   </button>
                 </div>
               </form>
             )}
 
-            <p className="text-[13px] text-ink2 mt-8">
-              Sin registro ni correos. Tu nombre se recuerda en este navegador.
-            </p>
+            <p className={`text-[13px] ${TEXT_MUTED} mt-8`}>{t('welcome_footer')}</p>
           </>
         )}
       </div>

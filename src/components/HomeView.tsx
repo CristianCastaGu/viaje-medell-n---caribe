@@ -5,6 +5,7 @@ import { formatCOP, calculateIndividualBalances } from '../utils/debts';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { createAnnouncement, deleteAnnouncement } from '../api';
 import { Button, EmptyState, inputCls } from './ui';
+import { useLang, TKey } from '../lib/i18n';
 
 interface HomeViewProps {
   itinerary: ItineraryDay[];
@@ -21,15 +22,15 @@ interface HomeViewProps {
 const TRIP_START = Date.UTC(2026, 9, 9); // 9 de octubre de 2026
 const DAY_MS = 86400000;
 
-function countdown(): { label: string } {
+function countdown(t: (key: TKey, vars?: Record<string, string>) => string): { label: string } {
   const now = Date.now();
   if (now < TRIP_START) {
     const days = Math.ceil((TRIP_START - now) / DAY_MS);
-    return { label: days === 1 ? 'Falta 1 día' : `Faltan ${days} días` };
+    return { label: days === 1 ? t('home_countdown_one_day') : t('home_countdown_days', { n: String(days) }) };
   }
   const dayIdx = Math.floor((now - TRIP_START) / DAY_MS);
-  if (dayIdx < 10) return { label: `Día ${dayIdx + 1} de 10` };
-  return { label: 'La aventura ya pasó' };
+  if (dayIdx < 10) return { label: t('home_countdown_day_of_10', { n: String(dayIdx + 1) }) };
+  return { label: t('home_countdown_over') };
 }
 
 function currentOrFirstDay(itinerary: ItineraryDay[]): ItineraryDay {
@@ -64,6 +65,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onRefresh,
   onSelectTab,
 }) => {
+  const { t } = useLang();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [newAnnouncement, setNewAnnouncement] = useState('');
   const [isPosting, setIsPosting] = useState(false);
@@ -78,7 +80,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   const groups = dayRangesByCity(itinerary);
   const today = currentOrFirstDay(itinerary);
-  const cd = countdown();
+  const cd = countdown(t);
 
   const totalBudget = itinerary.reduce((sum, d) => sum + (d.estimatedBudgetCOP || 0), 0);
   const openPolls = polls.filter((p) => p.status === 'activa').length;
@@ -87,10 +89,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const myBalance = currentUser ? balances[currentUser.name] || 0 : 0;
   const balanceLabel =
     Math.abs(myBalance) < 1
-      ? 'Estás a paz y salvo'
+      ? t('loans_settled')
       : myBalance > 0
-        ? `Te deben ${formatCOP(myBalance)}`
-        : `Debes ${formatCOP(Math.abs(myBalance))}`;
+        ? `${t('loans_owed')} ${formatCOP(myBalance)}`
+        : `${t('loans_owe')} ${formatCOP(Math.abs(myBalance))}`;
 
   const handlePostAnnouncement = async () => {
     if (!newAnnouncement.trim()) return;
@@ -170,23 +172,23 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* Avisos del grupo */}
       <section className="mb-10">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-2xl font-bold tracking-[-0.02em] text-ink">Avisos del grupo</h2>
+          <h2 className="text-2xl font-bold tracking-[-0.02em] text-ink">{t('home_notices')}</h2>
         </div>
         {isAdmin && (
           <div className="flex gap-2 mb-3">
             <input
               value={newAnnouncement}
               onChange={(e) => setNewAnnouncement(e.target.value)}
-              placeholder="Escribe un aviso para todo el grupo..."
+              placeholder={t('home_notice_placeholder')}
               className={inputCls}
             />
             <Button onClick={handlePostAnnouncement} disabled={isPosting || !newAnnouncement.trim()}>
-              <Plus className="w-4 h-4" /> Publicar
+              <Plus className="w-4 h-4" /> {t('home_notice_publish')}
             </Button>
           </div>
         )}
         {announcements.length === 0 ? (
-          <EmptyState>Sin avisos por ahora.</EmptyState>
+          <EmptyState>{t('home_notice_empty')}</EmptyState>
         ) : (
           <ul className="grid gap-3 list-none p-0 m-0">
             {announcements.map((a) => (
@@ -210,10 +212,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <section className="mb-10">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-2xl font-bold tracking-[-0.02em] text-ink">
-            {Date.now() >= TRIP_START ? 'Hoy' : 'Arrancamos así'}
+            {Date.now() >= TRIP_START ? t('home_today') : t('home_kickoff')}
           </h2>
           <Button variant="ghost" size="sm" onClick={() => onSelectTab('itinerario')}>
-            Ver la ruta completa →
+            {t('home_see_route')}
           </Button>
         </div>
         <div className="flex gap-5 border-t-0" style={{ borderLeft: `5px solid var(--color-${cityCodeFromName(today.city)})` }}>
@@ -240,36 +242,36 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="border-t-[3px] border-ink pt-3">
           <b className="block text-2xl sm:text-3xl tracking-[-0.03em] text-ink">{formatCOP(totalBudget)}</b>
-          <span className="text-ink2 text-sm">Presupuesto estimado por persona</span>
+          <span className="text-ink2 text-sm">{t('home_stat_budget')}</span>
           <br />
           <Button variant="ghost" size="sm" onClick={() => onSelectTab('itinerario')}>
-            Ver detalle
+            {t('home_stat_budget_action')}
           </Button>
         </div>
         <div className="border-t-[3px] border-ink pt-3">
           <b className="block text-2xl sm:text-3xl tracking-[-0.03em] text-ink">{openPolls}</b>
-          <span className="text-ink2 text-sm">encuestas abiertas para votar</span>
+          <span className="text-ink2 text-sm">{t('home_stat_polls')}</span>
           <br />
           <Button variant="ghost" size="sm" onClick={() => onSelectTab('encuestas')}>
-            <Vote className="w-3.5 h-3.5" /> Votar
+            <Vote className="w-3.5 h-3.5" /> {t('home_stat_polls_action')}
           </Button>
         </div>
         <div className="border-t-[3px] border-ink pt-3">
           <b className="block text-2xl sm:text-3xl tracking-[-0.03em] text-ink">{pendingSuggestions}</b>
-          <span className="text-ink2 text-sm">ideas del grupo en revisión</span>
+          <span className="text-ink2 text-sm">{t('home_stat_suggestions')}</span>
           <br />
           <Button variant="ghost" size="sm" onClick={() => onSelectTab('sugerencias')}>
-            <Lightbulb className="w-3.5 h-3.5" /> Sugerir algo
+            <Lightbulb className="w-3.5 h-3.5" /> {t('home_stat_suggestions_action')}
           </Button>
         </div>
         <div className="border-t-[3px] border-ink pt-3">
           <b className={`block text-xl sm:text-2xl tracking-[-0.03em] ${myBalance > 1 ? 'text-ok' : myBalance < -1 ? 'text-bad' : 'text-ink'}`}>
             {balanceLabel}
           </b>
-          <span className="text-ink2 text-sm">según las cuentas registradas</span>
+          <span className="text-ink2 text-sm">{t('home_stat_balance_sub')}</span>
           <br />
           <Button variant="ghost" size="sm" onClick={() => onSelectTab('prestamos')}>
-            <Coins className="w-3.5 h-3.5" /> Ver cuentas
+            <Coins className="w-3.5 h-3.5" /> {t('home_stat_balance_action')}
           </Button>
         </div>
       </div>

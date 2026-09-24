@@ -104,7 +104,7 @@ export const FilterPill: React.FC<{
 );
 
 export const EmptyState: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="border-[1.5px] border-dashed border-line rounded-2xl p-6 text-ink2">
+  <div className="border-[1.5px] border-dashed border-line rounded-2xl p-6 text-ink2 bg-surface/50 backdrop-blur-sm">
     {children}
   </div>
 );
@@ -147,7 +147,7 @@ export const Surface: React.FC<{ children: React.ReactNode; className?: string }
   children,
   className = '',
 }) => (
-  <div className={`bg-surface border border-line rounded-2xl p-5 sm:p-6 ${className}`}>
+  <div className={`bg-surface/75 backdrop-blur-md border border-line/60 rounded-2xl p-5 sm:p-6 ${className}`}>
     {children}
   </div>
 );
@@ -158,7 +158,7 @@ export const Modal: React.FC<{
   children: React.ReactNode;
 }> = ({ title, onClose, children }) => (
   <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs grid place-items-center p-4">
-    <div className="bg-surface rounded-2xl max-w-md w-full p-6 shadow-2xl grid gap-4 max-h-[calc(100vh-2rem)] overflow-auto">
+    <div className="bg-surface/90 backdrop-blur-lg border border-line/50 rounded-2xl max-w-md w-full p-6 shadow-2xl grid gap-4 max-h-[calc(100vh-2rem)] overflow-auto">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-bold text-ink">{title}</h3>
         <button

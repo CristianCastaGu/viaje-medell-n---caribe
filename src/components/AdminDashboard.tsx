@@ -4,6 +4,7 @@ import { TripState, Suggestion, ActiveTab } from '../types';
 import { formatCOP, formatDateEs, calculatePairwiseNet } from '../utils/debts';
 import { updateSuggestionStatus, updatePollStatus, resetTripData } from '../api';
 import { Button, EmptyState, Modal, Surface } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface AdminDashboardProps {
   tripState: TripState;
@@ -28,6 +29,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onSelectTab,
   onToggleAutoApprove,
 }) => {
+  const { t } = useLang();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('resumen');
   const [isResetting, setIsResetting] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
@@ -100,13 +102,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <div>
-          <h2 className="text-[28px] font-bold tracking-[-0.03em] text-ink">Panel del organizador</h2>
-          <p className="text-ink2 text-sm mt-1 max-w-xl">
-            Aquí recibes lo que manda el grupo, decides y se refleja al instante.
-          </p>
+          <h2 className="text-[28px] font-bold tracking-[-0.03em] text-ink">{t('admin_title')}</h2>
+          <p className="text-ink2 text-sm mt-1 max-w-xl">{t('admin_lead')}</p>
         </div>
         <Button onClick={() => onSelectTab('itinerario')}>
-          <Calendar className="w-4 h-4" /> Editar itinerario
+          <Calendar className="w-4 h-4" /> {t('admin_edit_route')}
         </Button>
       </div>
 

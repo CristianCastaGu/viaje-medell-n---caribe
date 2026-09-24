@@ -13,6 +13,7 @@ import {
   TotalRow,
   formatCOP,
 } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface TransportViewProps {
   transportLegs: TransportLeg[];
@@ -42,6 +43,7 @@ export const TransportView: React.FC<TransportViewProps> = ({
   onRefresh,
   onNavigateToSuggestions,
 }) => {
+  const { t } = useLang();
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -88,24 +90,21 @@ export const TransportView: React.FC<TransportViewProps> = ({
   return (
     <div>
       <SectionHeader
-        title="Cómo nos movemos"
-        lead="Tramos entre ciudades. Los precios son por persona y pueden cambiar."
+        title={t('transport_title')}
+        lead={t('transport_lead')}
         actions={
           <>
-            <Button onClick={onNavigateToSuggestions}>Sugerir transporte</Button>
+            <Button onClick={onNavigateToSuggestions}>{t('transport_suggest')}</Button>
             {isAdmin && (
               <Button variant="ghost" size="sm" onClick={() => setIsAdding((v) => !v)}>
-                <Plus className="w-4 h-4" /> Agregar tramo
+                <Plus className="w-4 h-4" /> {t('transport_add')}
               </Button>
             )}
           </>
         }
       />
 
-      <NoteBanner>
-        El lunes 12 de octubre es festivo: buses y vuelos se llenan y suben de precio. Conviene
-        comprar con tiempo.
-      </NoteBanner>
+      <NoteBanner>{t('transport_note')}</NoteBanner>
 
       {isAdmin && isAdding && (
         <div className="bg-surface border border-line rounded-2xl p-5 mb-6 grid gap-3">
@@ -219,7 +218,7 @@ export const TransportView: React.FC<TransportViewProps> = ({
       )}
 
       {sorted.length === 0 ? (
-        <EmptyState>Todavía no hay tramos de transporte cargados.</EmptyState>
+        <EmptyState>{t('transport_empty')}</EmptyState>
       ) : (
         <>
           <div className="grid gap-4">
@@ -235,21 +234,21 @@ export const TransportView: React.FC<TransportViewProps> = ({
                   end={
                     <>
                       <Chip tone={tl.isEstimated ? 'wait' : 'ok'}>
-                        {tl.isEstimated ? 'Precio estimado' : 'Dato del grupo'}
+                        {tl.isEstimated ? t('lodging_estimated') : t('lodging_confirmed')}
                       </Chip>
                       <div>
                         <b className="text-[22px] tracking-[-0.03em] text-ink">
                           {formatCOP(tl.priceCOP)}
                         </b>
                         <br />
-                        <span className="text-ink2 text-sm">por persona</span>
+                        <span className="text-ink2 text-sm">{t('transport_per_person')}</span>
                       </div>
                       {isAdmin && (
                         <button
                           onClick={() => handleDelete(tl.id, `${tl.fromCity} → ${tl.toCity}`)}
                           className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Quitar
+                          <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
                         </button>
                       )}
                     </>
@@ -270,7 +269,7 @@ export const TransportView: React.FC<TransportViewProps> = ({
               );
             })}
           </div>
-          <TotalRow label="Transporte entre ciudades por persona" value={formatCOP(total)} />
+          <TotalRow label={t('transport_total_row')} value={formatCOP(total)} />
         </>
       )}
     </div>

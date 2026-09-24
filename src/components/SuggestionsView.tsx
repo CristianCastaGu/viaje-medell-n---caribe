@@ -4,6 +4,7 @@ import { Suggestion, SuggestionCategory, Traveler, ItineraryDay } from '../types
 import { formatCOP, formatDateEs } from '../utils/debts';
 import { createSuggestion, updateSuggestionStatus } from '../api';
 import { Button, Chip, EmptyState, Field, FilterPill, Modal, SectionHeader, Surface, inputCls } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface SuggestionsViewProps {
   suggestions: Suggestion[];
@@ -29,6 +30,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
   isAdmin,
   onRefresh,
 }) => {
+  const { t } = useLang();
   const [filter, setFilter] = useState<'todas' | 'pendientes' | 'aprobadas'>('todas');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -107,11 +109,11 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
   return (
     <div>
       <SectionHeader
-        title="Ideas del grupo"
-        lead="Propón lugares, hospedajes, horarios o lo que creas importante. El admin las revisa y decide qué entra al plan."
+        title={t('ideas_title')}
+        lead={t('ideas_lead')}
         actions={
           <Button onClick={() => setIsFormOpen((v) => !v)}>
-            <Plus className="w-4 h-4" /> Proponer una idea
+            <Plus className="w-4 h-4" /> {t('ideas_propose')}
           </Button>
         }
       />
@@ -197,20 +199,20 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
 
       <div className="flex gap-2 flex-wrap mb-5">
         <FilterPill active={filter === 'todas'} onClick={() => setFilter('todas')}>
-          Todas ({visibleSuggestions.length})
+          {t('ideas_all')} ({visibleSuggestions.length})
         </FilterPill>
         <FilterPill active={filter === 'pendientes'} onClick={() => setFilter('pendientes')}>
-          En revisión {pendingCount > 0 ? `(${pendingCount})` : ''}
+          {t('ideas_pending')} {pendingCount > 0 ? `(${pendingCount})` : ''}
         </FilterPill>
         <FilterPill active={filter === 'aprobadas'} onClick={() => setFilter('aprobadas')}>
-          Aceptadas ({visibleSuggestions.filter((s) => s.status === 'aprobada').length})
+          {t('ideas_approved')} ({visibleSuggestions.filter((s) => s.status === 'aprobada').length})
         </FilterPill>
       </div>
 
       {filteredSuggestions.length === 0 ? (
-        <EmptyState>Nada por aquí todavía.</EmptyState>
+        <EmptyState>{t('ideas_empty')}</EmptyState>
       ) : (
-        <div className="grid gap-3">
+        <Surface className="grid gap-3">
           {filteredSuggestions.map((sug) => {
             const isPending = sug.status === 'pendiente';
             const isApproved = sug.status === 'aprobada';
@@ -228,17 +230,17 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
                   </div>
                   {isPending && (
                     <Chip tone="wait">
-                      <Clock className="w-3 h-3" /> En revisión
+                      <Clock className="w-3 h-3" /> {t('ideas_status_pending')}
                     </Chip>
                   )}
                   {isApproved && (
                     <Chip tone="ok">
-                      <CheckCircle className="w-3 h-3" /> Aceptada
+                      <CheckCircle className="w-3 h-3" /> {t('ideas_status_approved')}
                     </Chip>
                   )}
                   {isDiscarded && (
                     <Chip>
-                      <XCircle className="w-3 h-3" /> Descartada
+                      <XCircle className="w-3 h-3" /> {t('ideas_status_discarded')}
                     </Chip>
                   )}
                 </div>
@@ -261,17 +263,17 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
                 {isAdmin && isPending && (
                   <div className="flex gap-2 pt-1">
                     <Button size="sm" onClick={() => handleOpenApproveModal(sug)}>
-                      Aprobar
+                      {t('ideas_approve')}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => handleDiscard(sug.id)}>
-                      Descartar
+                      {t('ideas_discard')}
                     </Button>
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
+        </Surface>
       )}
 
       {approvingSug && (

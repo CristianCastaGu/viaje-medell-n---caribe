@@ -80,9 +80,23 @@ html {
 :root[data-theme="dark"] { color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
 
+/* Fondo de foto para toda la app (no la pantalla de bienvenida, que
+   trae su propia imagen). El velo de color es el mismo --color-bg del
+   tema en cada momento, así que se adapta solo entre claro/oscuro sin
+   media queries aparte. */
 body {
-  background: var(--color-bg);
   color: var(--color-ink);
+  background-color: var(--color-bg);
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--color-bg) 38%, transparent),
+      color-mix(in srgb, var(--color-bg) 38%, transparent)
+    ),
+    url('/app-bg.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 h1, h2, h3, .font-heading {

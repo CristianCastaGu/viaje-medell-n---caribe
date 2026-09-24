@@ -10,6 +10,7 @@ import {
 } from '../utils/debts';
 import { createLoan, deleteLoan, toggleSettleLoan } from '../api';
 import { Button, Chip, EmptyState, Field, SectionHeader, Surface, inputCls } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface LoansViewProps {
   loans: Loan[];
@@ -22,6 +23,7 @@ interface LoansViewProps {
 const QUICK_CONCEPTS = ['Taxi / Van', 'Cena grupal', 'Almuerzo', 'Cervezas', 'Entrada Tayrona', 'Lancha'];
 
 export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentUser, isAdmin, onRefresh }) => {
+  const { t } = useLang();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mineOnly, setMineOnly] = useState(false);
@@ -100,11 +102,11 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
   return (
     <div>
       <SectionHeader
-        title="Quién le debe a quién"
-        lead="Anota cada préstamo o gasto compartido. La fecha y hora se guardan solas, y los saldos se compensan entre sí."
+        title={t('loans_title')}
+        lead={t('loans_lead')}
         actions={
           <Button onClick={() => setIsFormOpen((v) => !v)}>
-            <Plus className="w-4 h-4" /> Registrar movimiento
+            <Plus className="w-4 h-4" /> {t('loans_register')}
           </Button>
         }
       />
@@ -120,22 +122,22 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
           <div className="flex items-center gap-3">
             <span className="text-2xl">{currentUser.avatar}</span>
             <div>
-              <p className="text-xs text-ink2">Tu saldo ({currentUser.name})</p>
+              <p className="text-xs text-ink2">{t('loans_your_balance')} ({currentUser.name})</p>
               <p
                 className={`text-xl font-bold ${
                   myBalance > 0 ? 'text-ok' : myBalance < 0 ? 'text-bad' : 'text-ink'
                 }`}
               >
                 {myBalance > 0
-                  ? `Te deben ${formatCOP(myBalance)}`
+                  ? `${t('loans_owed')} ${formatCOP(myBalance)}`
                   : myBalance < 0
-                    ? `Debes ${formatCOP(Math.abs(myBalance))}`
-                    : 'Estás a paz y salvo'}
+                    ? `${t('loans_owe')} ${formatCOP(Math.abs(myBalance))}`
+                    : t('loans_settled')}
               </p>
             </div>
           </div>
           <div className="text-xs text-ink2">
-            Total registrado en el grupo: <b className="text-ink">{formatCOP(totalActiveDebt)}</b>
+            {t('loans_group_total')}: <b className="text-ink">{formatCOP(totalActiveDebt)}</b>
           </div>
         </Surface>
       )}
@@ -230,30 +232,30 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
 
       <Surface className="mb-5">
         <div className="flex justify-between items-center gap-3 flex-wrap mb-3">
-          <h3 className="font-bold text-ink">Para quedar a mano</h3>
+          <h3 className="font-bold text-ink">{t('loans_settle_up')}</h3>
           <div className="flex bg-soft p-1 rounded-lg text-xs font-semibold">
             <button
               onClick={() => setSettlementMode('pairwise')}
               className={`px-3 py-1 rounded-md cursor-pointer ${settlementMode === 'pairwise' ? 'bg-surface text-ink shadow-sm' : 'text-ink2'}`}
             >
-              Directa
+              {t('loans_direct')}
             </button>
             <button
               onClick={() => setSettlementMode('optimized')}
               className={`px-3 py-1 rounded-md cursor-pointer ${settlementMode === 'optimized' ? 'bg-surface text-ink shadow-sm' : 'text-ink2'}`}
             >
-              Mín. transferencias
+              {t('loans_minimal')}
             </button>
           </div>
         </div>
         {displayedSettlements.length === 0 ? (
-          <p className="text-sm text-ink2 text-center py-4">¡Nadie le debe a nadie!</p>
+          <p className="text-sm text-ink2 text-center py-4">{t('loans_no_debts')}</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-2.5">
             {displayedSettlements.map((s, i) => (
               <div key={i} className="flex items-center justify-between gap-3 bg-soft rounded-xl px-3.5 py-2.5">
                 <span className="text-sm text-ink">
-                  <b>{s.from}</b> <span className="text-ink2 text-xs">le paga a</span> <b>{s.to}</b>
+                  <b>{s.from}</b> <span className="text-ink2 text-xs">{t('loans_pays_to')}</span> <b>{s.to}</b>
                 </span>
                 <span className="font-bold text-ink bg-surface border border-line px-2.5 py-0.5 rounded-lg text-sm">
                   {formatCOP(s.amount)}
@@ -266,14 +268,14 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
 
       <Surface>
         <div className="flex justify-between items-center gap-3 flex-wrap mb-3">
-          <h3 className="font-bold text-ink">Historial ({loans.length})</h3>
+          <h3 className="font-bold text-ink">{t('loans_history')} ({loans.length})</h3>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-ink2 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar..."
+                placeholder={t('loans_search')}
                 className="pl-8 pr-3 py-1.5 bg-soft border border-line rounded-lg text-xs text-ink w-40"
               />
             </div>
@@ -284,13 +286,13 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
                   mineOnly ? 'bg-ink text-bg' : 'bg-soft text-ink2'
                 }`}
               >
-                Solo mis cuentas
+                {t('loans_mine_only')}
               </button>
             )}
           </div>
         </div>
         {filteredLoans.length === 0 ? (
-          <EmptyState>Aquí aparecerá cada movimiento con su fecha y hora.</EmptyState>
+          <EmptyState>{t('loans_history_empty')}</EmptyState>
         ) : (
           <div className="grid gap-2">
             {filteredLoans.map((loan) => (
@@ -311,7 +313,7 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-bold text-ink">{formatCOP(loan.amount)}</span>
                   <Button size="sm" variant="ghost" onClick={() => handleToggleSettle(loan.id)}>
-                    {loan.settled ? 'Reactivar' : 'Saldar'}
+                    {loan.settled ? t('loans_reactivate') : t('loans_settle')}
                   </Button>
                   {isAdmin && (
                     <button

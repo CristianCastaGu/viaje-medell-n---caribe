@@ -7,6 +7,7 @@ import { CITY_LABEL, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { CITY_COORDS, ROUTE_ORDER } from '../lib/tripMap';
 import { createPlace, deletePlace } from '../api';
 import { Button, Chip, Field, inputCls } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface RouteMapProps {
   itinerary: ItineraryDay[];
@@ -69,6 +70,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'imperdible' as PlaceCategory, description: '' });
 
+  const { t } = useLang();
   const cityCode = cityCodeFromName(currentDay.city);
   const cityPlaces = places.filter((p) => p.city === currentDay.city);
 
@@ -179,7 +181,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-ink2" />
-          <h4 className="font-bold text-ink">Ruta en mapa</h4>
+          <h4 className="font-bold text-ink">{t('route_map_title')}</h4>
           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${style.soft}`}>
             Día {currentDay.dayNumber} · {currentDay.city}
           </span>
@@ -196,12 +198,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
               onClick={() => setMode('trip')}
               className={`px-3 py-1 rounded-md cursor-pointer ${mode === 'trip' ? 'bg-surface text-ink shadow-sm' : 'text-ink2'}`}
             >
-              Viaje completo
+              {t('route_map_trip')}
             </button>
           </div>
           <button
             onClick={toggleFullscreen}
-            title="Pantalla completa"
+            title={t('route_map_fullscreen')}
             className="p-1.5 rounded-lg border border-line text-ink2 hover:text-ink hover:border-ink cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -218,14 +220,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
         <div className="mt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-ink2">
-              {cityPlaces.length} {cityPlaces.length === 1 ? 'lugar' : 'lugares'} en {currentDay.city}
+              {cityPlaces.length} {cityPlaces.length === 1 ? t('route_map_place') : t('route_map_places')} {t('route_map_places_in')} {currentDay.city}
             </span>
             {isAdmin && (
               <button
                 onClick={() => setIsAdding((v) => !v)}
                 className="text-xs font-semibold text-ink2 hover:text-ink flex items-center gap-1 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Agregar lugar
+                <Plus className="w-3.5 h-3.5" /> {t('route_map_add_place')}
               </button>
             )}
           </div>
@@ -264,7 +266,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
           )}
 
           {cityPlaces.length === 0 ? (
-            <p className="text-sm text-ink2 italic">Aún no hay lugares para {currentDay.city}. ¡Agrega el primero!</p>
+            <p className="text-sm text-ink2 italic">{t('route_map_empty')} {currentDay.city}.</p>
           ) : (
             <div className="flex gap-2.5 overflow-x-auto pb-1">
               {cityPlaces.map((p, idx) => (

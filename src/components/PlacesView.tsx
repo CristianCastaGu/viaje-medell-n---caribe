@@ -4,6 +4,7 @@ import { Place, PlaceCategory, CityName } from '../types';
 import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { createPlace, deletePlace } from '../api';
 import { Button, Chip, EmptyState, FilterPill, SectionHeader } from './ui';
+import { useLang } from '../lib/i18n';
 
 interface PlacesViewProps {
   places: Place[];
@@ -34,6 +35,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
   onRefresh,
   onNavigateToSuggestions,
 }) => {
+  const { t } = useLang();
   const [filter, setFilter] = useState<'all' | CityName>('all');
   const [isAdding, setIsAdding] = useState(false);
   const [form, setForm] = useState({
@@ -76,14 +78,14 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
   return (
     <div>
       <SectionHeader
-        title="Lugares para visitar"
-        lead="Lo que ya está en el plan. ¿Conoces otro sitio? Propónlo y el admin decide."
+        title={t('places_title')}
+        lead={t('places_lead')}
         actions={
           <>
-            <Button onClick={onNavigateToSuggestions}>Sugerir un lugar</Button>
+            <Button onClick={onNavigateToSuggestions}>{t('places_suggest')}</Button>
             {isAdmin && (
               <Button variant="ghost" size="sm" onClick={() => setIsAdding((v) => !v)}>
-                <Plus className="w-4 h-4" /> Agregar lugar
+                <Plus className="w-4 h-4" /> {t('places_add')}
               </Button>
             )}
           </>
@@ -178,7 +180,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
 
       <div className="flex gap-2 flex-wrap mb-2">
         <FilterPill active={filter === 'all'} onClick={() => setFilter('all')}>
-          Todas
+          {t('places_all')}
         </FilterPill>
         {cities.map((c) => (
           <FilterPill key={c} active={filter === c} onClick={() => setFilter(c)}>
@@ -193,19 +195,19 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
           const rows = places.filter((p) => p.city === city);
           const style = CITY_STYLE[cityCodeFromName(city)];
           return (
-            <section key={city} className="mt-8">
+            <section key={city} className="mt-8 bg-surface/70 backdrop-blur-md border border-line/60 rounded-2xl p-5 sm:p-6">
               <h3
                 className={`text-2xl font-bold tracking-[-0.02em] pb-1.5 flex justify-between gap-2.5 border-b-4 ${style.border} text-ink`}
               >
                 <span>{city}</span>
                 <span className="text-ink2 text-base font-medium self-end">
-                  {rows.length} {rows.length === 1 ? 'lugar' : 'lugares'}
+                  {rows.length} {rows.length === 1 ? t('route_map_place') : t('route_map_places')}
                 </span>
               </h3>
 
               {rows.length === 0 ? (
                 <div className="mt-3">
-                  <EmptyState>Aún no hay lugares aquí. ¡Sugiere uno!</EmptyState>
+                  <EmptyState>{t('places_empty')}</EmptyState>
                 </div>
               ) : (
                 rows.map((p) => (
@@ -225,7 +227,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-1.5 border-[1.5px] border-line text-ink bg-transparent px-3 py-1.5 text-[13px] rounded-[9px] min-h-[40px] font-semibold hover:border-ink"
                       >
-                        <MapPin className="w-3.5 h-3.5" /> Ver en mapa
+                        <MapPin className="w-3.5 h-3.5" /> {t('places_view_map')}
                         <ExternalLink className="w-3 h-3 opacity-60" />
                       </a>
                       {isAdmin && (
@@ -233,7 +235,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
                           onClick={() => handleDelete(p.id, p.name)}
                           className="inline-flex items-center justify-center gap-1.5 border-[1.5px] border-line text-ink2 bg-transparent px-3 py-1.5 text-[13px] rounded-[9px] min-h-[40px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Quitar
+                          <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
                         </button>
                       )}
                     </div>
