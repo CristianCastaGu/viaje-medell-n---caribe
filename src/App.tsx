@@ -10,7 +10,6 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { Navbar } from './components/Navbar';
 import { NavigationTabs } from './components/NavigationTabs';
 import { ItineraryView } from './components/ItineraryView';
-import { FullTripMapView } from './components/FullTripMapView';
 import { PlacesView } from './components/PlacesView';
 import { LodgingView } from './components/LodgingView';
 import { TransportView } from './components/TransportView';
@@ -170,18 +169,6 @@ export default function App() {
             isAdmin={isAdmin}
             currentUser={currentUser}
             onItineraryUpdated={() => loadState()}
-            onNavigateToSuggestions={(dayNumber) => {
-              setActiveTab('sugerencias');
-            }}
-          />
-        )}
-
-        {activeTab === 'mapa' && (
-          <FullTripMapView
-            itinerary={tripState.itinerary}
-            onSelectDay={(dayNumber) => {
-              setActiveTab('itinerario');
-            }}
             onNavigateToSuggestions={(dayNumber) => {
               setActiveTab('sugerencias');
             }}

@@ -143,6 +143,50 @@ export const Ticket: React.FC<{
   </article>
 );
 
+export const Surface: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = '',
+}) => (
+  <div className={`bg-surface border border-line rounded-2xl p-5 sm:p-6 ${className}`}>
+    {children}
+  </div>
+);
+
+export const Modal: React.FC<{
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ title, onClose, children }) => (
+  <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-xs grid place-items-center p-4">
+    <div className="bg-surface rounded-2xl max-w-md w-full p-6 shadow-2xl grid gap-4 max-h-[calc(100vh-2rem)] overflow-auto">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold text-ink">{title}</h3>
+        <button
+          onClick={onClose}
+          className="text-ink2 hover:text-ink text-sm cursor-pointer"
+          aria-label="Cerrar"
+        >
+          ✕
+        </button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+export const Field: React.FC<{
+  label: string;
+  children: React.ReactNode;
+}> = ({ label, children }) => (
+  <label className="grid gap-1.5">
+    <span className="text-sm font-semibold text-ink">{label}</span>
+    {children}
+  </label>
+);
+
+export const inputCls =
+  'w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink placeholder:text-ink2/60';
+
 export const TotalRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex justify-between gap-3 px-1 py-4 border-t-[3px] border-ink mt-[18px] font-bold text-xl text-ink">
     <span>{label}</span>

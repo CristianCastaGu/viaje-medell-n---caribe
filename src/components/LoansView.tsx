@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  Coins, Plus, ArrowRight, ArrowLeftRight, CheckCircle2, Trash2, 
-  Search, Filter, Sparkles, User, Calendar, DollarSign, HelpCircle, Check
-} from 'lucide-react';
+import { Plus, X, Search, Calendar } from 'lucide-react';
 import { Loan, Traveler } from '../types';
-import { 
-  formatCOP, formatDateEs, calculatePairwiseNet, calculateIndividualBalances, calculateOptimizedSettlements 
+import {
+  formatCOP,
+  formatDateEs,
+  calculatePairwiseNet,
+  calculateIndividualBalances,
+  calculateOptimizedSettlements,
 } from '../utils/debts';
 import { createLoan, deleteLoan, toggleSettleLoan } from '../api';
+import { Button, Chip, EmptyState, Field, SectionHeader, Surface, inputCls } from './ui';
 
 interface LoansViewProps {
   loans: Loan[];
@@ -17,30 +19,14 @@ interface LoansViewProps {
   onRefresh: () => void;
 }
 
-const COMMON_CONCEPTS = [
-  'Taxi / Van',
-  'Cena grupal',
-  'Almuerzo típico',
-  'Cervezas / Tragos',
-  'Entrada Tayrona',
-  'Lancha Islas',
-  'Snacks y agua',
-  'Supermercado',
-];
+const QUICK_CONCEPTS = ['Taxi / Van', 'Cena grupal', 'Almuerzo', 'Cervezas', 'Entrada Tayrona', 'Lancha'];
 
-export const LoansView: React.FC<LoansViewProps> = ({
-  loans,
-  travelers,
-  currentUser,
-  isAdmin,
-  onRefresh,
-}) => {
+export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentUser, isAdmin, onRefresh }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterMyLoansOnly, setFilterMyLoansOnly] = useState(false);
+  const [mineOnly, setMineOnly] = useState(false);
   const [settlementMode, setSettlementMode] = useState<'pairwise' | 'optimized'>('pairwise');
 
-  // Form state
   const [lender, setLender] = useState(currentUser?.name || '');
   const [borrower, setBorrower] = useState('');
   const [amount, setAmount] = useState('');
@@ -49,459 +35,253 @@ export const LoansView: React.FC<LoansViewProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Keep lender updated if currentUser changes
   React.useEffect(() => {
-    if (currentUser && !lender) {
-      setLender(currentUser.name);
-    }
+    if (currentUser && !lender) setLender(currentUser.name);
   }, [currentUser]);
 
-  // Calculate Net balances
   const pairwiseSettlements = calculatePairwiseNet(loans);
   const optimizedSettlements = calculateOptimizedSettlements(loans);
   const individualBalances = calculateIndividualBalances(loans);
-
   const displayedSettlements = settlementMode === 'pairwise' ? pairwiseSettlements : optimizedSettlements;
-
-  // Current user's individual net balance
   const myBalance = currentUser ? individualBalances[currentUser.name] || 0 : 0;
 
-  // Filtered loans history
   const filteredLoans = loans.filter((loan) => {
-    if (filterMyLoansOnly && currentUser) {
-      const isMine = loan.lender === currentUser.name || loan.borrower === currentUser.name;
-      if (!isMine) return false;
-    }
+    if (mineOnly && currentUser && loan.lender !== currentUser.name && loan.borrower !== currentUser.name)
+      return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchConcept = loan.concept.toLowerCase().includes(q);
-      const matchLender = loan.lender.toLowerCase().includes(q);
-      const matchBorrower = loan.borrower.toLowerCase().includes(q);
-      return matchConcept || matchLender || matchBorrower;
+      return (
+        loan.concept.toLowerCase().includes(q) ||
+        loan.lender.toLowerCase().includes(q) ||
+        loan.borrower.toLowerCase().includes(q)
+      );
     }
     return true;
   });
 
-  const totalActiveDebt = loans
-    .filter((l) => !l.settled)
-    .reduce((acc, l) => acc + l.amount, 0);
+  const totalActiveDebt = loans.filter((l) => !l.settled).reduce((acc, l) => acc + l.amount, 0);
+  const travelerNames = travelers.map((t) => t.name);
 
   const handleCreateLoan = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-
     const parsedAmount = Number(amount);
-    if (!lender) {
-      setErrorMsg('Selecciona quién prestó el dinero.');
-      return;
-    }
-    if (!borrower) {
-      setErrorMsg('Selecciona a quién se le prestó el dinero.');
-      return;
-    }
-    if (lender === borrower) {
-      setErrorMsg('No puedes registrar un préstamo a ti mismo.');
-      return;
-    }
-    if (!parsedAmount || parsedAmount <= 0) {
-      setErrorMsg('Ingresa un monto válido mayor a $0.');
-      return;
-    }
-    if (!concept.trim()) {
-      setErrorMsg('Ingresa el motivo o concepto (ej. taxi, cena, cervezas).');
-      return;
-    }
+    if (!lender) return setErrorMsg('Selecciona quién puso la plata.');
+    if (!borrower) return setErrorMsg('Selecciona para quién fue.');
+    if (lender === borrower) return setErrorMsg('No puedes registrar un préstamo a ti mismo.');
+    if (!parsedAmount || parsedAmount <= 0) return setErrorMsg('Ingresa un monto válido mayor a $0.');
+    if (!concept.trim()) return setErrorMsg('Ingresa el motivo (ej. taxi, cena).');
 
     setIsSubmitting(true);
-    const success = await createLoan({
-      lender: lender.trim(),
-      borrower: borrower.trim(),
-      amount: parsedAmount,
-      concept: concept.trim(),
-    });
+    const success = await createLoan({ lender: lender.trim(), borrower: borrower.trim(), amount: parsedAmount, concept: concept.trim() });
     setIsSubmitting(false);
-
     if (success) {
       setAmount('');
       setConcept('');
       setIsFormOpen(false);
-      setSuccessMsg('¡Préstamo registrado exitosamente! Se compensaron los saldos.');
+      setSuccessMsg('¡Movimiento registrado! Los saldos ya se compensaron.');
       setTimeout(() => setSuccessMsg(''), 4000);
       onRefresh();
     } else {
-      setErrorMsg('Error al guardar el préstamo.');
+      setErrorMsg('Error al guardar el registro.');
     }
   };
 
   const handleDeleteLoan = async (id: string) => {
-    if (!window.confirm('¿Deseas eliminar este registro de préstamo?')) return;
-    await deleteLoan(id);
-    onRefresh();
+    if (!window.confirm('¿Eliminar este registro?')) return;
+    if (await deleteLoan(id)) onRefresh();
   };
-
   const handleToggleSettle = async (id: string) => {
     await toggleSettleLoan(id);
     onRefresh();
   };
-
-  const addAmountQuick = (extra: number) => {
-    const current = Number(amount) || 0;
-    setAmount(String(current + extra));
-  };
-
-  // Traveler names options
-  const travelerNames = travelers.map((t) => t.name);
+  const addAmountQuick = (extra: number) => setAmount(String((Number(amount) || 0) + extra));
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-5 sm:p-6 text-white shadow-lg shadow-emerald-950/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/20 backdrop-blur-xs text-white mb-2">
-            <Coins className="w-3.5 h-3.5" />
-            Cuentas Claras en el Viaje
-          </span>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-            Préstamos y Compensación de Gastos
-          </h2>
-          <p className="text-emerald-100 text-xs sm:text-sm mt-0.5 max-w-xl">
-            Registra quién le pagó a quién (taxis, comidas, entradas). El sistema compensa automáticamente los saldos cruzados tipo Splitwise.
-          </p>
-        </div>
-
-        <button
-          id="btn-open-loan-form"
-          onClick={() => setIsFormOpen(!isFormOpen)}
-          className="px-5 py-3 rounded-2xl bg-white text-emerald-950 hover:bg-emerald-50 font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 text-emerald-600" />
-          Registrar Préstamo
-        </button>
-      </div>
+    <div>
+      <SectionHeader
+        title="Quién le debe a quién"
+        lead="Anota cada préstamo o gasto compartido. La fecha y hora se guardan solas, y los saldos se compensan entre sí."
+        actions={
+          <Button onClick={() => setIsFormOpen((v) => !v)}>
+            <Plus className="w-4 h-4" /> Registrar movimiento
+          </Button>
+        }
+      />
 
       {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm font-semibold flex items-center gap-2 animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{successMsg}</span>
+        <div className="p-3.5 bg-ok/10 border border-ok/30 rounded-xl text-ok text-sm font-semibold mb-4">
+          {successMsg}
         </div>
       )}
 
-      {/* User's Personal Balance Card */}
       {currentUser && (
-        <div className="bg-white rounded-3xl border border-emerald-100 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Surface className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-2xl flex items-center justify-center shrink-0">
-              {currentUser.avatar}
-            </div>
+            <span className="text-2xl">{currentUser.avatar}</span>
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Tu resumen personal ({currentUser.name})
+              <p className="text-xs text-ink2">Tu saldo ({currentUser.name})</p>
+              <p
+                className={`text-xl font-bold ${
+                  myBalance > 0 ? 'text-ok' : myBalance < 0 ? 'text-bad' : 'text-ink'
+                }`}
+              >
+                {myBalance > 0
+                  ? `Te deben ${formatCOP(myBalance)}`
+                  : myBalance < 0
+                    ? `Debes ${formatCOP(Math.abs(myBalance))}`
+                    : 'Estás a paz y salvo'}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                {myBalance > 0 ? (
-                  <span className="text-lg sm:text-xl font-extrabold text-emerald-600">
-                    Te deben en total {formatCOP(myBalance)}
-                  </span>
-                ) : myBalance < 0 ? (
-                  <span className="text-lg sm:text-xl font-extrabold text-red-600">
-                    Debes en total {formatCOP(Math.abs(myBalance))}
-                  </span>
-                ) : (
-                  <span className="text-lg sm:text-xl font-extrabold text-slate-700">
-                    ¡Estás a mano! (Saldo $0)
-                  </span>
-                )}
-              </div>
             </div>
           </div>
-
-          <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 self-start sm:self-auto">
-            Total préstamos registrados en el grupo:{' '}
-            <strong className="text-slate-800">{formatCOP(totalActiveDebt)}</strong>
+          <div className="text-xs text-ink2">
+            Total registrado en el grupo: <b className="text-ink">{formatCOP(totalActiveDebt)}</b>
           </div>
-        </div>
+        </Surface>
       )}
 
-      {/* New Loan Form Modal / Drawer */}
       {isFormOpen && (
-        <div className="bg-white rounded-3xl border border-emerald-200 shadow-md p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Coins className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-900">
-                Registrar Nuevo Préstamo
-              </h3>
-            </div>
-            <button
-              onClick={() => setIsFormOpen(false)}
-              className="text-slate-400 hover:text-slate-600 text-sm font-medium"
-            >
-              Cerrar
+        <Surface className="mb-6 grid gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-ink">Registrar un movimiento</h3>
+            <button onClick={() => setIsFormOpen(false)} className="text-ink2 hover:text-ink cursor-pointer">
+              <X className="w-4 h-4" />
             </button>
           </div>
-
-          <form onSubmit={handleCreateLoan} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Lender */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  1. ¿Quién prestó el dinero? *
-                </label>
-                <select
-                  value={lender}
-                  onChange={(e) => setLender(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  required
-                >
-                  <option value="">Selecciona quién pagó</option>
+          <form onSubmit={handleCreateLoan} className="grid gap-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="¿Quién puso la plata?">
+                <select value={lender} onChange={(e) => setLender(e.target.value)} className={inputCls} required>
+                  <option value="">Selecciona</option>
                   {travelerNames.map((name) => (
                     <option key={name} value={name}>
                       {name} {name === currentUser?.name ? '(Tú)' : ''}
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Borrower */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  2. ¿A quién le prestó? *
-                </label>
-                <select
-                  value={borrower}
-                  onChange={(e) => setBorrower(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  required
-                >
-                  <option value="">Selecciona a quién le prestó</option>
+              </Field>
+              <Field label="¿Para quién fue?">
+                <select value={borrower} onChange={(e) => setBorrower(e.target.value)} className={inputCls} required>
+                  <option value="">Selecciona</option>
                   {travelerNames
-                    .filter((name) => name !== lender)
+                    .filter((n) => n !== lender)
                     .map((name) => (
                       <option key={name} value={name}>
                         {name} {name === currentUser?.name ? '(Tú)' : ''}
                       </option>
                     ))}
                 </select>
-              </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  3. Monto en Pesos Colombianos (COP) *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Ej. 45000"
-                    step="1000"
-                    className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    required
-                  />
-                </div>
-                {/* Quick amount increment pills */}
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span className="text-[10px] text-slate-400 mr-1">Rápido:</span>
+              </Field>
+              <Field label="Monto (COP)">
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="50000"
+                  step="1000"
+                  className={inputCls}
+                  required
+                />
+                <div className="flex flex-wrap gap-1.5 mt-1">
                   {[10000, 20000, 50000, 100000].map((inc) => (
                     <button
                       key={inc}
                       type="button"
                       onClick={() => addAmountQuick(inc)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold transition-all"
+                      className="px-2 py-0.5 bg-soft hover:bg-line text-ink text-[11px] font-semibold rounded-lg cursor-pointer"
                     >
-                      +{formatCOP(inc).replace(',00', '')}
+                      +{formatCOP(inc)}
                     </button>
                   ))}
                 </div>
-              </div>
-
-              {/* Concept */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  4. Motivo o concepto *
-                </label>
+              </Field>
+              <Field label="¿De qué fue?">
                 <input
-                  type="text"
                   value={concept}
                   onChange={(e) => setConcept(e.target.value)}
-                  placeholder="Ej. Taxi aeropuerto, cena en Getsemaní, entrada Tayrona..."
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="Taxi, cena, entrada Tayrona..."
+                  className={inputCls}
                   required
                 />
-                {/* Quick concept pills */}
-                <div className="flex flex-wrap items-center gap-1 mt-2">
-                  {COMMON_CONCEPTS.slice(0, 4).map((c) => (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {QUICK_CONCEPTS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setConcept(c)}
-                      className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded-lg text-[10px] font-medium hover:bg-emerald-100"
+                      className="px-2 py-0.5 bg-soft hover:bg-line text-ink text-[11px] font-medium rounded-lg cursor-pointer"
                     >
                       {c}
                     </button>
                   ))}
                 </div>
-              </div>
+              </Field>
             </div>
-
-            <p className="text-[11px] text-slate-400 italic">
-              * La fecha y hora exactas se registrarán automáticamente por el sistema.
-            </p>
-
-            {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold">
-                {errorMsg}
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                className="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100 font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Coins className="w-4 h-4" />
-                {isSubmitting ? 'Guardando...' : 'Guardar Préstamo'}
-              </button>
+            <p className="text-xs text-ink2 italic">La fecha y hora se registran automáticamente.</p>
+            {errorMsg && <p className="text-bad text-sm font-medium">{errorMsg}</p>}
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Guardando...' : 'Guardar movimiento'}
+              </Button>
             </div>
           </form>
-        </div>
+        </Surface>
       )}
 
-      {/* Main Section: Quién le debe a quién (Net Settlements) */}
-      <div className="bg-white rounded-3xl border border-amber-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <ArrowLeftRight className="w-5 h-5 text-orange-500" />
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900">
-                Resumen de Saldos Netos ("Quién le debe a quién")
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Si A le prestó a B y luego B le prestó a A, las deudas se compensan automáticamente y solo queda el saldo neto.
-            </p>
-          </div>
-
-          {/* Toggle between pairwise and minimum cashflow */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+      <Surface className="mb-5">
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-3">
+          <h3 className="font-bold text-ink">Para quedar a mano</h3>
+          <div className="flex bg-soft p-1 rounded-lg text-xs font-semibold">
             <button
               onClick={() => setSettlementMode('pairwise')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                settlementMode === 'pairwise'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`px-3 py-1 rounded-md cursor-pointer ${settlementMode === 'pairwise' ? 'bg-surface text-ink shadow-sm' : 'text-ink2'}`}
             >
-              Compensación Directa
+              Directa
             </button>
             <button
               onClick={() => setSettlementMode('optimized')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                settlementMode === 'optimized'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`px-3 py-1 rounded-md cursor-pointer ${settlementMode === 'optimized' ? 'bg-surface text-ink shadow-sm' : 'text-ink2'}`}
             >
-              Mínimas Transferencias
+              Mín. transferencias
             </button>
           </div>
         </div>
-
-        {/* Settlement Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {displayedSettlements.length === 0 ? (
-            <div className="col-span-2 text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
-              <p className="text-sm font-bold text-slate-700">¡Nadie le debe a nadie!</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Todos los saldos están saldados o no hay préstamos activos.
-              </p>
-            </div>
-          ) : (
-            displayedSettlements.map((settlement, index) => {
-              const isDebtorMe = currentUser && settlement.from === currentUser.name;
-              const isCreditorMe = currentUser && settlement.to === currentUser.name;
-
-              return (
-                <div
-                  key={index}
-                  className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                    isDebtorMe
-                      ? 'bg-red-50/50 border-red-200'
-                      : isCreditorMe
-                      ? 'bg-emerald-50/50 border-emerald-200'
-                      : 'bg-slate-50/70 border-slate-200/80'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                      <span className={isDebtorMe ? 'text-red-700' : 'text-slate-800'}>
-                        {settlement.from} {isDebtorMe ? '(Tú)' : ''}
-                      </span>
-                      <span className="text-xs font-normal text-slate-500">le debe a</span>
-                      <span className={isCreditorMe ? 'text-emerald-700' : 'text-slate-800'}>
-                        {settlement.to} {isCreditorMe ? '(Tú)' : ''}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-500">
-                      Saldo compensado en tiempo real
-                    </p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-base sm:text-lg font-black text-emerald-900 bg-white border border-slate-200 px-3 py-1 rounded-xl shadow-2xs">
-                      {formatCOP(settlement.amount)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Full Transactions History */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900">
-              Historial de Registros ({loans.length})
-            </h3>
-            <p className="text-xs text-slate-500">
-              Detalle de cada préstamo individual registrado por el grupo con su fecha y hora automática.
-            </p>
+        {displayedSettlements.length === 0 ? (
+          <p className="text-sm text-ink2 text-center py-4">¡Nadie le debe a nadie!</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {displayedSettlements.map((s, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 bg-soft rounded-xl px-3.5 py-2.5">
+                <span className="text-sm text-ink">
+                  <b>{s.from}</b> <span className="text-ink2 text-xs">le paga a</span> <b>{s.to}</b>
+                </span>
+                <span className="font-bold text-ink bg-surface border border-line px-2.5 py-0.5 rounded-lg text-sm">
+                  {formatCOP(s.amount)}
+                </span>
+              </div>
+            ))}
           </div>
+        )}
+      </Surface>
 
+      <Surface>
+        <div className="flex justify-between items-center gap-3 flex-wrap mb-3">
+          <h3 className="font-bold text-ink">Historial ({loans.length})</h3>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-ink2 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
-                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por concepto o nombre..."
-                className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-48 sm:w-56"
+                placeholder="Buscar..."
+                className="pl-8 pr-3 py-1.5 bg-soft border border-line rounded-lg text-xs text-ink w-40"
               />
             </div>
-
             {currentUser && (
               <button
-                onClick={() => setFilterMyLoansOnly(!filterMyLoansOnly)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                  filterMyLoansOnly
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                onClick={() => setMineOnly(!mineOnly)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
+                  mineOnly ? 'bg-ink text-bg' : 'bg-soft text-ink2'
                 }`}
               >
                 Solo mis cuentas
@@ -509,90 +289,44 @@ export const LoansView: React.FC<LoansViewProps> = ({
             )}
           </div>
         </div>
-
-        {/* Transactions List */}
-        <div className="space-y-2.5">
-          {filteredLoans.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-xs italic">
-              No hay préstamos que coincidan con la búsqueda.
-            </div>
-          ) : (
-            filteredLoans.map((loan) => {
-              const isSettled = loan.settled;
-
-              return (
-                <div
-                  key={loan.id}
-                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    isSettled
-                      ? 'bg-slate-50/50 border-slate-200 opacity-60'
-                      : 'bg-white border-slate-200/90 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm">
-                      <span className="font-extrabold text-emerald-800">
-                        {loan.lender}
-                      </span>
-                      <span className="text-slate-400 text-xs">le prestó a</span>
-                      <span className="font-extrabold text-red-800">
-                        {loan.borrower}
-                      </span>
-                      <span className="text-xs text-slate-400">•</span>
-                      <span className="text-xs font-semibold text-slate-700">
-                        "{loan.concept}"
-                      </span>
-                      {isSettled && (
-                        <span className="ml-1 text-[10px] font-bold px-2 py-0.2 bg-emerald-100 text-emerald-800 rounded-full">
-                          Saldado
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDateEs(loan.createdAt)}</span>
-                      <span>(Auto-generado)</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <span className="text-base font-black text-slate-900">
-                      {formatCOP(loan.amount)}
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        id={`btn-settle-loan-${loan.id}`}
-                        onClick={() => handleToggleSettle(loan.id)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                          isSettled
-                            ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
-                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                        title={isSettled ? 'Reactivar deuda' : 'Marcar como pagado'}
-                      >
-                        {isSettled ? 'Reactivar' : 'Saldar'}
-                      </button>
-
-                      {isAdmin && (
-                        <button
-                          id={`btn-delete-loan-${loan.id}`}
-                          onClick={() => handleDeleteLoan(loan.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar préstamo"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
+        {filteredLoans.length === 0 ? (
+          <EmptyState>Aquí aparecerá cada movimiento con su fecha y hora.</EmptyState>
+        ) : (
+          <div className="grid gap-2">
+            {filteredLoans.map((loan) => (
+              <div
+                key={loan.id}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line py-3 ${loan.settled ? 'opacity-50' : ''}`}
+              >
+                <div>
+                  <p className="text-sm text-ink">
+                    <b>{loan.lender}</b> <span className="text-ink2 text-xs">le prestó a</span>{' '}
+                    <b>{loan.borrower}</b> · "{loan.concept}"
+                    {loan.settled && <Chip tone="ok"> Saldado</Chip>}
+                  </p>
+                  <p className="flex items-center gap-1.5 text-xs text-ink2 mt-0.5">
+                    <Calendar className="w-3 h-3" /> {formatDateEs(loan.createdAt)}
+                  </p>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-bold text-ink">{formatCOP(loan.amount)}</span>
+                  <Button size="sm" variant="ghost" onClick={() => handleToggleSettle(loan.id)}>
+                    {loan.settled ? 'Reactivar' : 'Saldar'}
+                  </Button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteLoan(loan.id)}
+                      className="text-ink2 hover:text-bad p-1 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Surface>
     </div>
   );
 };
