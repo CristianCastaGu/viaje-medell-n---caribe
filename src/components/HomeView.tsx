@@ -5,7 +5,7 @@ import { formatCOP, calculateIndividualBalances } from '../utils/debts';
 import { CITY_LABEL, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { dayOfMonth, monthName, parseIsoDate } from '../lib/dates';
 import { createAnnouncement, deleteAnnouncement } from '../api';
-import { Button, EmptyState, inputCls } from './ui';
+import { Button, EmptyState, inputCls, Surface } from './ui';
 import { useLang, TKey } from '../lib/i18n';
 
 interface HomeViewProps {
@@ -223,16 +223,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
         ) : (
           <ul className="grid gap-3 list-none p-0 m-0">
             {announcements.map((a) => (
-              <li key={a.id} className="border-l-4 border-ink pl-3.5 py-0.5 flex justify-between items-start gap-3">
-                <span className="text-sm text-ink">{a.text}</span>
-                {isAdmin && (
-                  <button
-                    onClick={() => handleRemoveAnnouncement(a.id)}
-                    className="text-ink2 hover:text-bad shrink-0 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+              <li key={a.id}>
+                <Surface className="!py-3 !px-4 flex justify-between items-start gap-3 border-l-4 !border-l-ink">
+                  <span className="text-sm text-ink">{a.text}</span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRemoveAnnouncement(a.id)}
+                      className="text-ink2 hover:text-bad shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </Surface>
               </li>
             ))}
           </ul>
