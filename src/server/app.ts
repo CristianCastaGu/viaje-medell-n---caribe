@@ -15,7 +15,7 @@ import { resolveGoogleMapsLink } from './mapsLink.js';
 // Palabra secreta del grupo y contraseña del admin.
 // Pueden sobreescribirse por variables de entorno (recomendado si el
 // repo es público), pero por defecto usan las que pidió el usuario.
-const GROUP_SECRET = process.env.TRIP_GROUP_SECRET || 'Desapareceresopcional';
+const GROUP_SECRET = process.env.TRIP_GROUP_SECRET || 'USabana';
 const ADMIN_PASSWORD = process.env.TRIP_ADMIN_PASSWORD || 'adminSabana';
 
 const DEFAULT_AVATARS = ['🌴', '🌺', '☕', '🌊', '🧗', '🦜', '🏖️', '🕶️', '🛶', '🎒'];

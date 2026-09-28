@@ -74,7 +74,7 @@ y se ve igual para todos, tanto en local como en producción (Vercel).
 
 | Acceso | Palabra clave por defecto |
 |---|---|
-| Grupo general | `Desapareceresopcional` |
+| Grupo general | `USabana` |
 | Admin | `adminSabana` |
 
 Puedes cambiarlas sin tocar código con las variables de entorno
