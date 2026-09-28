@@ -5,6 +5,7 @@ import { formatDateEs } from '../utils/debts';
 import { createPoll, voteOnPoll, updatePollStatus } from '../api';
 import { Button, Chip, EmptyState, Field, SectionHeader, Surface, inputCls } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface PollsViewProps {
   polls: Poll[];
@@ -257,7 +258,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
                     </div>
                   )}
                 </div>
-                <h3 className="text-lg font-bold text-ink mb-3">{poll.question}</h3>
+                <h3 className="text-lg font-bold text-ink mb-3"><Tx>{poll.question}</Tx></h3>
 
                 <div className="grid gap-2.5">
                   {poll.options.map((option) => {
@@ -277,7 +278,7 @@ export const PollsView: React.FC<PollsViewProps> = ({
                         />
                         <div className="relative flex justify-between items-center gap-3 flex-wrap">
                           <div>
-                            <span className="font-semibold text-ink text-sm">{option.text}</span>
+                            <span className="font-semibold text-ink text-sm"><Tx>{option.text}</Tx></span>
                             {option.votes.length > 0 && (
                               <p className="text-xs text-ink2 mt-0.5">{option.votes.join(', ')}</p>
                             )}

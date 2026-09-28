@@ -6,6 +6,7 @@ import { CITY_LABEL, CITY_STYLE, cityCodeFromName } from '../lib/cityTheme';
 import { dayOfMonth, monthName, parseIsoDate } from '../lib/dates';
 import { createAnnouncement, deleteAnnouncement } from '../api';
 import { Button, EmptyState, inputCls, Surface } from './ui';
+import { Tx } from '../lib/autoTranslate';
 import { useLang, TKey } from '../lib/i18n';
 
 interface HomeViewProps {
@@ -225,7 +226,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {announcements.map((a) => (
               <li key={a.id}>
                 <Surface className="!py-3 !px-4 flex justify-between items-start gap-3 border-l-4 !border-l-ink">
-                  <span className="text-sm text-ink">{a.text}</span>
+                  <span className="text-sm text-ink"><Tx>{a.text}</Tx></span>
                   {isAdmin && (
                     <button
                       onClick={() => handleRemoveAnnouncement(a.id)}
@@ -257,13 +258,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <b className="text-4xl font-bold tracking-[-0.05em] text-ink">{dayOfMonth(today.isoDate)}</b>
               <span className="text-xs text-ink2">{monthName(today.isoDate).slice(0, 3)}</span>
             </div>
-            <h3 className="text-lg font-bold text-ink mt-1">{today.title}</h3>
+            <h3 className="text-lg font-bold text-ink mt-1"><Tx>{today.title}</Tx></h3>
             <p className="text-sm text-ink2">{today.city}</p>
             <ul className="grid gap-1.5 mt-2 list-none p-0">
               {today.activities.slice(0, 4).map((act) => (
                 <li key={act.id} className="flex gap-3 text-sm">
                   <span className="text-ink2 w-24 shrink-0">{act.time}</span>
-                  <span className="text-ink">{act.title}</span>
+                  <span className="text-ink"><Tx>{act.title}</Tx></span>
                 </li>
               ))}
             </ul>

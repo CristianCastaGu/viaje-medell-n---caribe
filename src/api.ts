@@ -364,6 +364,19 @@ export async function deleteLodging(id: string): Promise<boolean> {
   }
 }
 
+export async function updateLodging(lodging: Lodging): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/lodging/${lodging.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lodging),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createTransportLeg(payload: Omit<TransportLeg, 'id'>): Promise<boolean> {
   try {
     const res = await fetch('/api/trip/transport', {
@@ -380,6 +393,36 @@ export async function createTransportLeg(payload: Omit<TransportLeg, 'id'>): Pro
 export async function deleteTransportLeg(id: string): Promise<boolean> {
   try {
     const res = await fetch(`/api/trip/transport/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateTransportLeg(leg: TransportLeg): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trip/transport/${leg.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leg),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Presupuesto (valores base, admin)
+// ---------------------------------------------------------------------
+
+export async function updateBudgetConfig(patch: Partial<import('./types').BudgetConfig>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/trip/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ budget: patch }),
+    });
     return res.ok;
   } catch {
     return false;

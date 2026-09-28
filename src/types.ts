@@ -130,6 +130,20 @@ export interface Settlement {
   amount: number; // Monto neto
 }
 
+export type TayronaCategory = 'nacional' | 'extranjero';
+
+export interface BudgetConfig {
+  foodPerDayCOP: number;
+  partySpendPerNightCOP: number;
+  partyNights: number;
+  localTransportCOP: number;
+  activitiesExtrasCOP: number;
+  festivalsCOP: number;
+  tayronaCategory: TayronaCategory;
+  highSeason: boolean;
+  updatedAt: string;
+}
+
 export interface TripState {
   itinerary: ItineraryDay[];
   travelers: Traveler[];
@@ -145,6 +159,7 @@ export interface TripState {
     tripName: string;
     dates: string;
     cities: string[];
+    budget: BudgetConfig;
   };
 }
 
@@ -154,6 +169,7 @@ export type ActiveTab =
   | 'lugares'
   | 'hospedaje'
   | 'transporte'
+  | 'presupuesto'
   | 'sugerencias'
   | 'encuestas'
   | 'prestamos'

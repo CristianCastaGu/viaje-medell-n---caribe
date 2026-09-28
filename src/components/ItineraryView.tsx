@@ -11,6 +11,7 @@ import { addDaysIso, dayOfMonth, formatSpanishDate } from '../lib/dates';
 import { Button, Chip, CityDot, Field, Modal, SectionHeader, Surface, TotalRow, inputCls } from './ui';
 import { RouteMap } from './RouteMap';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface ItineraryViewProps {
   itinerary: ItineraryDay[];
@@ -249,8 +250,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                 <CityDot city={currentDay.city} /> {currentDay.city}
               </span>
             </div>
-            <h3 className="text-[26px] sm:text-3xl font-bold tracking-[-0.03em] text-ink">{currentDay.title}</h3>
-            <p className="text-sm text-ink2 mt-1 italic">"{currentDay.tagline}"</p>
+            <h3 className="text-[26px] sm:text-3xl font-bold tracking-[-0.03em] text-ink"><Tx>{currentDay.title}</Tx></h3>
+            <p className="text-sm text-ink2 mt-1 italic">"<Tx>{currentDay.tagline}</Tx>"</p>
           </div>
 
           <div className="flex items-center gap-2 self-end md:self-center">
@@ -291,14 +292,20 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
               <Building className="w-3.5 h-3.5" /> {t('route_lodging')}
             </div>
-            <p className="text-sm font-bold text-ink">{currentDay.lodging || t('route_lodging_fallback')}</p>
-            {currentDay.lodgingNotes && <p className="text-xs text-ink2 mt-1">{currentDay.lodgingNotes}</p>}
+            <p className="text-sm font-bold text-ink">
+              {currentDay.lodging ? <Tx>{currentDay.lodging}</Tx> : t('route_lodging_fallback')}
+            </p>
+            {currentDay.lodgingNotes && (
+              <p className="text-xs text-ink2 mt-1"><Tx>{currentDay.lodgingNotes}</Tx></p>
+            )}
           </div>
           <div className="bg-soft rounded-xl p-3.5">
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
               <Bus className="w-3.5 h-3.5" /> {t('route_transport')}
             </div>
-            <p className="text-sm font-bold text-ink">{currentDay.transport || t('route_transport_fallback')}</p>
+            <p className="text-sm font-bold text-ink">
+              {currentDay.transport ? <Tx>{currentDay.transport}</Tx> : t('route_transport_fallback')}
+            </p>
           </div>
           <div className="bg-soft rounded-xl p-3.5">
             <div className="flex items-center gap-1.5 text-ink2 font-semibold text-xs uppercase tracking-wide mb-1.5">
@@ -373,8 +380,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                         </span>
                       )}
                     </div>
-                    <h5 className="font-bold text-ink text-sm">{act.title}</h5>
-                    {act.description && <p className="text-xs text-ink2 mt-0.5">{act.description}</p>}
+                    <h5 className="font-bold text-ink text-sm"><Tx>{act.title}</Tx></h5>
+                    {act.description && <p className="text-xs text-ink2 mt-0.5"><Tx>{act.description}</Tx></p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {!!act.costEstimateCOP && (

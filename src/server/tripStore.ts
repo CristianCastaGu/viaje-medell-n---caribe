@@ -55,6 +55,7 @@ async function seedIfEmpty(): Promise<void> {
     dates: seed.config.dates,
     cities: seed.config.cities,
     auto_approve_polls: seed.config.autoApprovePolls,
+    budget_config: seed.config.budget,
   });
   if (cfgErr) throw cfgErr;
 
@@ -411,6 +412,7 @@ export async function getFullState(): Promise<TripState> {
           dates: cfg.dates,
           cities: cfg.cities,
           autoApprovePolls: cfg.auto_approve_polls,
+          budget: cfg.budget_config ?? INITIAL_TRIP_STATE.config.budget,
         }
       : INITIAL_TRIP_STATE.config,
   };
@@ -696,6 +698,18 @@ export async function deleteLodging(id: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+export async function updateLodging(lodging: Lodging): Promise<Lodging[] | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('lodging')
+    .update(lodgingToRow(lodging))
+    .eq('id', lodging.id)
+    .select();
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+  return listLodging();
+}
+
 export async function insertTransportLeg(leg: TransportLeg): Promise<TransportLeg[]> {
   const supabase = getSupabaseClient();
   const { error } = await supabase.from('transport_legs').insert(transportLegToRow(leg));
@@ -718,6 +732,18 @@ export async function deleteTransportLeg(id: string): Promise<boolean> {
   const { data, error } = await supabase.from('transport_legs').delete().eq('id', id).select();
   if (error) throw error;
   return (data ?? []).length > 0;
+}
+
+export async function updateTransportLeg(leg: TransportLeg): Promise<TransportLeg[] | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('transport_legs')
+    .update(transportLegToRow(leg))
+    .eq('id', leg.id)
+    .select();
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+  return listTransportLegs();
 }
 
 // ---------------------------------------------------------------------
@@ -755,11 +781,26 @@ export async function deleteAnnouncement(id: string): Promise<boolean> {
 export async function updateConfig(patch: {
   autoApprovePolls?: boolean;
   tripName?: string;
+  budget?: Partial<import('../types').BudgetConfig>;
 }): Promise<TripState['config']> {
   const supabase = getSupabaseClient();
   const row: Record<string, unknown> = {};
   if (patch.autoApprovePolls !== undefined) row.auto_approve_polls = patch.autoApprovePolls;
   if (patch.tripName !== undefined) row.trip_name = patch.tripName;
+
+  if (patch.budget) {
+    const { data: current, error: curErr } = await supabase
+      .from('trip_config')
+      .select('budget_config')
+      .eq('id', 1)
+      .maybeSingle();
+    if (curErr) throw curErr;
+    row.budget_config = {
+      ...(current?.budget_config ?? INITIAL_TRIP_STATE.config.budget),
+      ...patch.budget,
+      updatedAt: new Date().toISOString(),
+    };
+  }
 
   const { data, error } = await supabase
     .from('trip_config')
@@ -773,6 +814,7 @@ export async function updateConfig(patch: {
     dates: data.dates,
     cities: data.cities,
     autoApprovePolls: data.auto_approve_polls,
+    budget: data.budget_config ?? INITIAL_TRIP_STATE.config.budget,
   };
 }
 

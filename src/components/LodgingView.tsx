@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { Lodging, CityName } from '../types';
 import { CITY_LABEL, CITY_ORDER, cityCodeFromName } from '../lib/cityTheme';
-import { createLodging, deleteLodging } from '../api';
-import { Button, Chip, CityDot, EmptyState, SectionHeader, Ticket, TotalRow, formatCOP } from './ui';
+import { createLodging, deleteLodging, updateLodging } from '../api';
+import { Button, Chip, CityDot, EmptyState, Field, Modal, SectionHeader, Ticket, TotalRow, formatCOP, inputCls } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface LodgingViewProps {
   lodging: Lodging[];
@@ -70,8 +71,22 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
     if (await deleteLodging(id)) onRefresh();
   };
 
-  const inputCls =
-    'w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink';
+  const [editingLodging, setEditingLodging] = useState<Lodging | null>(null);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+
+  const handleStartEdit = (l: Lodging) => setEditingLodging({ ...l });
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLodging || !editingLodging.name.trim()) return;
+    setIsEditSaving(true);
+    const ok = await updateLodging({ ...editingLodging, name: editingLodging.name.trim(), notes: editingLodging.notes.trim() });
+    setIsEditSaving(false);
+    if (ok) {
+      setEditingLodging(null);
+      onRefresh();
+    }
+  };
 
   return (
     <div>
@@ -208,12 +223,20 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
                         </span>
                       </div>
                       {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(l.id, l.name)}
-                          className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleStartEdit(l)}
+                            className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-ink hover:text-ink cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> {t('generic_edit')}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(l.id, l.name)}
+                            className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
+                          </button>
+                        </div>
                       )}
                     </>
                   }
@@ -223,13 +246,89 @@ export const LodgingView: React.FC<LodgingViewProps> = ({
                     <CityDot city={l.city} />
                     {l.city} · {dayOf(l.fromDate)} → {dayOf(l.toDate)} {monthOf(l.toDate)}
                   </div>
-                  <p className="text-ink2 text-[15px]">{l.notes}</p>
+                  <p className="text-ink2 text-[15px]"><Tx>{l.notes}</Tx></p>
                 </Ticket>
               );
             })}
           </div>
           <TotalRow label={t('lodging_total_row')} value={formatCOP(total)} />
         </>
+      )}
+
+      {editingLodging && (
+        <Modal title={`${t('generic_edit')}: ${editingLodging.name}`} onClose={() => setEditingLodging(null)}>
+          <form onSubmit={handleSaveEdit} className="grid gap-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Ciudad">
+                <select
+                  value={editingLodging.city}
+                  onChange={(e) => setEditingLodging({ ...editingLodging, city: e.target.value as CityName })}
+                  className={inputCls}
+                >
+                  {CITY_ORDER.map((c) => (
+                    <option key={c} value={CITY_LABEL[c]}>{CITY_LABEL[c]}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Nombre">
+                <input
+                  value={editingLodging.name}
+                  onChange={(e) => setEditingLodging({ ...editingLodging, name: e.target.value })}
+                  className={inputCls}
+                  required
+                />
+              </Field>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <Field label="Entrada">
+                <input
+                  type="date"
+                  value={editingLodging.fromDate}
+                  onChange={(e) => setEditingLodging({ ...editingLodging, fromDate: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Salida">
+                <input
+                  type="date"
+                  value={editingLodging.toDate}
+                  onChange={(e) => setEditingLodging({ ...editingLodging, toDate: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="COP por persona/noche">
+                <input
+                  inputMode="numeric"
+                  value={editingLodging.pricePerNightCOP || ''}
+                  onChange={(e) =>
+                    setEditingLodging({ ...editingLodging, pricePerNightCOP: Number(e.target.value.replace(/\D/g, '')) })
+                  }
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+            <Field label="Notas">
+              <input
+                value={editingLodging.notes}
+                onChange={(e) => setEditingLodging({ ...editingLodging, notes: e.target.value })}
+                className={inputCls}
+              />
+            </Field>
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={editingLodging.isEstimated}
+                onChange={(e) => setEditingLodging({ ...editingLodging, isEstimated: e.target.checked })}
+                className="w-5 h-5"
+              />
+              El precio todavía es un estimado (no está reservado)
+            </label>
+            <div className="flex gap-2.5 justify-end pt-2 border-t border-line">
+              <Button type="button" variant="ghost" onClick={() => setEditingLodging(null)}>{t('generic_cancel')}</Button>
+              <Button type="submit" disabled={isEditSaving}>{isEditSaving ? t('generic_saving') : t('generic_save')}</Button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

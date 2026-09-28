@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Bus, Plane, MoveRight } from 'lucide-react';
+import { Plus, Trash2, Pencil, Bus, Plane, MoveRight } from 'lucide-react';
 import { TransportLeg, TransportMode, CityCode } from '../types';
 import { CITY_LABEL, CITY_ORDER } from '../lib/cityTheme';
-import { createTransportLeg, deleteTransportLeg } from '../api';
+import { createTransportLeg, deleteTransportLeg, updateTransportLeg } from '../api';
 import {
   Button,
   Chip,
   EmptyState,
+  Field,
+  Modal,
   NoteBanner,
   SectionHeader,
   Ticket,
   TotalRow,
   formatCOP,
+  inputCls,
 } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface TransportViewProps {
   transportLegs: TransportLeg[];
@@ -84,8 +88,27 @@ export const TransportView: React.FC<TransportViewProps> = ({
     if (await deleteTransportLeg(id)) onRefresh();
   };
 
-  const inputCls =
-    'w-full border-[1.5px] border-line bg-surface rounded-[11px] px-3 py-2.5 text-ink';
+  const [editingLeg, setEditingLeg] = useState<TransportLeg | null>(null);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+
+  const handleStartEdit = (leg: TransportLeg) => setEditingLeg({ ...leg });
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLeg || !editingLeg.fromCity.trim() || !editingLeg.toCity.trim()) return;
+    setIsEditSaving(true);
+    const ok = await updateTransportLeg({
+      ...editingLeg,
+      fromCity: editingLeg.fromCity.trim(),
+      toCity: editingLeg.toCity.trim(),
+      notes: editingLeg.notes.trim(),
+    });
+    setIsEditSaving(false);
+    if (ok) {
+      setEditingLeg(null);
+      onRefresh();
+    }
+  };
 
   return (
     <div>
@@ -244,12 +267,20 @@ export const TransportView: React.FC<TransportViewProps> = ({
                         <span className="text-ink2 text-sm">{t('transport_per_person')}</span>
                       </div>
                       {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(tl.id, `${tl.fromCity} → ${tl.toCity}`)}
-                          className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleStartEdit(tl)}
+                            className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-ink hover:text-ink cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> {t('generic_edit')}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(tl.id, `${tl.fromCity} → ${tl.toCity}`)}
+                            className="inline-flex items-center gap-1.5 border-[1.5px] border-line text-ink2 px-3 py-1.5 text-[13px] rounded-[9px] font-semibold hover:border-bad hover:text-bad cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> {t('places_remove')}
+                          </button>
+                        </div>
                       )}
                     </>
                   }
@@ -264,13 +295,109 @@ export const TransportView: React.FC<TransportViewProps> = ({
                     </Chip>
                     {tl.time && <span className="text-ink2 text-sm">{tl.time}</span>}
                   </div>
-                  <p className="text-ink2 text-[15px]">{tl.notes}</p>
+                  <p className="text-ink2 text-[15px]"><Tx>{tl.notes}</Tx></p>
                 </Ticket>
               );
             })}
           </div>
           <TotalRow label={t('transport_total_row')} value={formatCOP(total)} />
         </>
+      )}
+
+      {editingLeg && (
+        <Modal title={`${t('generic_edit')}: ${editingLeg.fromCity} → ${editingLeg.toCity}`} onClose={() => setEditingLeg(null)}>
+          <form onSubmit={handleSaveEdit} className="grid gap-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Desde">
+                <input
+                  value={editingLeg.fromCity}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, fromCity: e.target.value })}
+                  className={inputCls}
+                  required
+                />
+              </Field>
+              <Field label="Hasta">
+                <input
+                  value={editingLeg.toCity}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, toCity: e.target.value })}
+                  className={inputCls}
+                  required
+                />
+              </Field>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <Field label="Fecha">
+                <input
+                  type="date"
+                  value={editingLeg.date}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, date: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Hora / momento">
+                <input
+                  value={editingLeg.time}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, time: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Medio">
+                <select
+                  value={editingLeg.mode}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, mode: e.target.value as TransportMode })}
+                  className={inputCls}
+                >
+                  {(Object.keys(MODE_LABEL) as TransportMode[]).map((m) => (
+                    <option key={m} value={m}>{MODE_LABEL[m]}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="COP por persona">
+                <input
+                  inputMode="numeric"
+                  value={editingLeg.priceCOP || ''}
+                  onChange={(e) =>
+                    setEditingLeg({ ...editingLeg, priceCOP: Number(e.target.value.replace(/\D/g, '')) })
+                  }
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Color (ciudad de destino)">
+                <select
+                  value={editingLeg.colorCity}
+                  onChange={(e) => setEditingLeg({ ...editingLeg, colorCity: e.target.value as CityCode })}
+                  className={inputCls}
+                >
+                  {CITY_ORDER.map((c) => (
+                    <option key={c} value={c}>{CITY_LABEL[c]}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="Notas">
+              <input
+                value={editingLeg.notes}
+                onChange={(e) => setEditingLeg({ ...editingLeg, notes: e.target.value })}
+                className={inputCls}
+              />
+            </Field>
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={editingLeg.isEstimated}
+                onChange={(e) => setEditingLeg({ ...editingLeg, isEstimated: e.target.checked })}
+                className="w-5 h-5"
+              />
+              El precio todavía es un estimado
+            </label>
+            <div className="flex gap-2.5 justify-end pt-2 border-t border-line">
+              <Button type="button" variant="ghost" onClick={() => setEditingLeg(null)}>{t('generic_cancel')}</Button>
+              <Button type="submit" disabled={isEditSaving}>{isEditSaving ? t('generic_saving') : t('generic_save')}</Button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

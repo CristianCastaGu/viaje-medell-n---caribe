@@ -14,6 +14,17 @@ export const INITIAL_TRIP_STATE: TripState = {
     dates: '9 - 18 de Octubre 2026',
     cities: ['Bogotá', 'Medellín', 'Cartagena', 'Barranquilla', 'Palomino', 'Santa Marta'],
     autoApprovePolls: false,
+    budget: {
+      foodPerDayCOP: 90000,
+      partySpendPerNightCOP: 100000,
+      partyNights: 5,
+      localTransportCOP: 150000,
+      activitiesExtrasCOP: 150000,
+      festivalsCOP: 0,
+      tayronaCategory: 'nacional',
+      highSeason: false,
+      updatedAt: new Date().toISOString(),
+    },
   },
   travelers: [],
   itinerary: [

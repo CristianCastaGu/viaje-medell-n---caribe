@@ -11,6 +11,7 @@ import {
 } from '../types';
 import * as store from './tripStore.js';
 import { resolveGoogleMapsLink } from './mapsLink.js';
+import { translateText } from './translate.js';
 
 // Palabra secreta del grupo y contraseña del admin.
 // Pueden sobreescribirse por variables de entorno (recomendado si el
@@ -196,6 +197,21 @@ export function createApiApp(): Express {
       } catch {
         res.status(400).json({ error: 'No pudimos abrir ese enlace de Google Maps.' });
       }
+    })
+  );
+
+  // Traducción automática de texto libre (ideas, avisos, notas...) para el
+  // grupo internacional. Sin llave, con fallback al texto original si falla.
+  app.post(
+    '/api/trip/translate',
+    wrap(async (req, res) => {
+      const { text, target } = req.body || {};
+      if (!text || typeof text !== 'string' || (target !== 'en' && target !== 'es')) {
+        res.json({ translated: text || '' });
+        return;
+      }
+      const translated = await translateText(text, target);
+      res.json({ translated });
     })
   );
 
@@ -518,6 +534,33 @@ export function createApiApp(): Express {
     })
   );
 
+  app.put(
+    '/api/trip/lodging/:id',
+    wrap(async (req, res) => {
+      const { city, name, fromDate, toDate, pricePerNightCOP, isEstimated, notes } = req.body || {};
+      if (!city || !name || !fromDate || !toDate) {
+        res.status(400).json({ error: 'Ciudad, nombre y fechas de entrada/salida son obligatorios.' });
+        return;
+      }
+      const lodging: Lodging = {
+        id: req.params.id,
+        city,
+        name: String(name).trim(),
+        fromDate,
+        toDate,
+        pricePerNightCOP: Number(pricePerNightCOP) || 0,
+        isEstimated: isEstimated !== false,
+        notes: (notes || '').trim(),
+      };
+      const list = await store.updateLodging(lodging);
+      if (!list) {
+        res.status(404).json({ error: 'Hospedaje no encontrado.' });
+        return;
+      }
+      res.json({ success: true, list });
+    })
+  );
+
   app.post(
     '/api/trip/transport',
     wrap(async (req, res) => {
@@ -553,6 +596,36 @@ export function createApiApp(): Express {
         return;
       }
       res.json({ success: true, legs: await store.listTransportLegs() });
+    })
+  );
+
+  app.put(
+    '/api/trip/transport/:id',
+    wrap(async (req, res) => {
+      const { fromCity, toCity, date, time, mode, priceCOP, isEstimated, colorCity, notes } =
+        req.body || {};
+      if (!fromCity || !toCity || !date) {
+        res.status(400).json({ error: 'Origen, destino y fecha son obligatorios.' });
+        return;
+      }
+      const leg: TransportLeg = {
+        id: req.params.id,
+        fromCity: String(fromCity).trim(),
+        toCity: String(toCity).trim(),
+        date,
+        time: (time || '').trim(),
+        mode: mode || 'bus',
+        priceCOP: Number(priceCOP) || 0,
+        isEstimated: isEstimated !== false,
+        colorCity: colorCity || 'med',
+        notes: (notes || '').trim(),
+      };
+      const legs = await store.updateTransportLeg(leg);
+      if (!legs) {
+        res.status(404).json({ error: 'Tramo de transporte no encontrado.' });
+        return;
+      }
+      res.json({ success: true, legs });
     })
   );
 
@@ -592,8 +665,8 @@ export function createApiApp(): Express {
   app.post(
     '/api/trip/config',
     wrap(async (req, res) => {
-      const { autoApprovePolls, tripName } = req.body || {};
-      const config = await store.updateConfig({ autoApprovePolls, tripName });
+      const { autoApprovePolls, tripName, budget } = req.body || {};
+      const config = await store.updateConfig({ autoApprovePolls, tripName, budget });
       res.json({ success: true, config });
     })
   );

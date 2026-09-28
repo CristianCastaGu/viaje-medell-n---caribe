@@ -14,6 +14,7 @@ import { ItineraryView } from './components/ItineraryView';
 import { PlacesView } from './components/PlacesView';
 import { LodgingView } from './components/LodgingView';
 import { TransportView } from './components/TransportView';
+import { BudgetView } from './components/BudgetView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { PollsView } from './components/PollsView';
 import { LoansView } from './components/LoansView';
@@ -221,6 +222,17 @@ export default function App() {
             isAdmin={isAdmin}
             onRefresh={() => loadState()}
             onNavigateToSuggestions={() => setActiveTab('sugerencias')}
+          />
+        )}
+
+        {activeTab === 'presupuesto' && (
+          <BudgetView
+            lodging={tripState.lodging}
+            transportLegs={tripState.transportLegs}
+            itineraryDaysCount={tripState.itinerary.length}
+            budgetConfig={tripState.config.budget}
+            isAdmin={isAdmin}
+            onRefresh={() => loadState()}
           />
         )}
 

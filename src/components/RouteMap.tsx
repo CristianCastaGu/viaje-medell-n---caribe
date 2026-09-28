@@ -8,6 +8,7 @@ import { CITY_COORDS, ROUTE_ORDER } from '../lib/tripMap';
 import { createPlace, deletePlace, resolveMapsLink } from '../api';
 import { Button, Chip, Field, inputCls, formatCOP } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface RouteMapProps {
   itinerary: ItineraryDay[];
@@ -324,7 +325,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({ itinerary, places, currentDa
                   </div>
                   <p className="font-bold text-ink text-sm mt-1">{p.name}</p>
                   <Chip>{CATEGORY_LABEL[p.category] ?? p.category}</Chip>
-                  {p.description && <p className="text-xs text-ink2 mt-1 line-clamp-2">{p.description}</p>}
+                  {p.description && <p className="text-xs text-ink2 mt-1 line-clamp-2"><Tx>{p.description}</Tx></p>}
                   {!!p.estimatedCostCOP && (
                     <p className="text-xs font-bold text-ink mt-1">{formatCOP(p.estimatedCostCOP)} p/p</p>
                   )}

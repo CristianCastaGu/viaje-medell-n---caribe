@@ -5,6 +5,7 @@ import { CITY_LABEL, CITY_ORDER, CITY_STYLE, cityCodeFromName } from '../lib/cit
 import { createPlace, deletePlace, resolveMapsLink } from '../api';
 import { Button, Chip, EmptyState, FilterPill, SectionHeader, formatCOP } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface PlacesViewProps {
   places: Place[];
@@ -234,7 +235,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({
                     <div>
                       <b className="text-ink font-bold">{p.name}</b>{' '}
                       <Chip>{CATEGORY_LABEL[p.category] ?? p.category}</Chip>
-                      <p className="text-ink2 text-[15px] mt-0.5">{p.description}</p>
+                      <p className="text-ink2 text-[15px] mt-0.5"><Tx>{p.description}</Tx></p>
                     </div>
                     <div className="flex gap-2 items-start flex-wrap sm:justify-end">
                       {!!p.estimatedCostCOP && (

@@ -5,6 +5,7 @@ import { formatCOP, formatDateEs } from '../utils/debts';
 import { createSuggestion, updateSuggestionStatus } from '../api';
 import { Button, Chip, EmptyState, Field, FilterPill, Modal, SectionHeader, Surface, inputCls } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface SuggestionsViewProps {
   suggestions: Suggestion[];
@@ -244,13 +245,13 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
                     </Chip>
                   )}
                 </div>
-                <h4 className="font-bold text-ink">{sug.title}</h4>
-                <p className="text-sm text-ink2">{sug.description}</p>
+                <h4 className="font-bold text-ink"><Tx>{sug.title}</Tx></h4>
+                <p className="text-sm text-ink2"><Tx>{sug.description}</Tx></p>
                 {sug.adminNote && (
                   <p className="text-xs text-ink2 flex items-start gap-1.5 bg-soft rounded-lg px-2.5 py-2">
                     <MessageSquare className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      <b className="text-ink">Nota del admin:</b> {sug.adminNote}
+                      <b className="text-ink">{t('ideas_admin_note_label')}</b> <Tx>{sug.adminNote}</Tx>
                     </span>
                   </p>
                 )}

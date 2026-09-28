@@ -11,6 +11,7 @@ import {
 import { createLoan, deleteLoan, toggleSettleLoan } from '../api';
 import { Button, Chip, EmptyState, Field, SectionHeader, Surface, inputCls } from './ui';
 import { useLang } from '../lib/i18n';
+import { Tx } from '../lib/autoTranslate';
 
 interface LoansViewProps {
   loans: Loan[];
@@ -303,7 +304,7 @@ export const LoansView: React.FC<LoansViewProps> = ({ loans, travelers, currentU
                 <div>
                   <p className="text-sm text-ink">
                     <b>{loan.lender}</b> <span className="text-ink2 text-xs">le prestó a</span>{' '}
-                    <b>{loan.borrower}</b> · "{loan.concept}"
+                    <b>{loan.borrower}</b> · "<Tx>{loan.concept}</Tx>"
                     {loan.settled && <Chip tone="ok"> Saldado</Chip>}
                   </p>
                   <p className="flex items-center gap-1.5 text-xs text-ink2 mt-0.5">

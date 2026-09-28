@@ -30,6 +30,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     { id: 'lugares', label: t('tab_lugares') },
     { id: 'hospedaje', label: t('tab_hospedaje') },
     { id: 'transporte', label: t('tab_transporte') },
+    { id: 'presupuesto', label: t('tab_presupuesto') },
     { id: 'encuestas', label: t('tab_votar'), badge: activePollsCount || undefined },
     { id: 'sugerencias', label: t('tab_ideas'), badge: pendingSuggestionsCount || undefined },
     { id: 'prestamos', label: t('tab_cuentas'), badge: totalLoansCount || undefined },
